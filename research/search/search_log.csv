@@ -1,0 +1,9 @@
+search_id,topic_cluster,database,query_version,actual_query,date_run,date_from,date_to,language,result_count,export_file,export_sha256,operator,status,notes
+PILOT-A-001,A,ACL Anthology,v1,"(dataset OR benchmark) AND (documentation OR reproducibility OR datasheet OR ""data statement"")",,1900-01-01,2026-08-04,en,,,,,not_run,"试检索；执行后不得覆盖历史记录"
+PILOT-B-001,B,ACL Anthology,v1,"(financial OR finance) AND (""document understanding"" OR ""question answering"" OR ""numerical reasoning"") AND (table OR text)",,2018-01-01,2026-08-04,en,,,,,not_run,试检索
+PILOT-C-001,C,ACL Anthology,v1,"(comparative OR ""multi-entity"" OR comparison) AND (""question answering"" OR summarization) AND (evaluation OR benchmark)",,2018-01-01,2026-08-04,en,,,,,not_run,试检索
+PILOT-D-001,D,ACL Anthology,v1,"(summarization OR generation) AND (factuality OR attribution OR citation OR conflict) AND (evaluation OR benchmark)",,2018-01-01,2026-08-04,en,,,,,not_run,试检索
+PILOT-E-001,E,Semantic Scholar,v1,"(""knowledge graph"" OR ontology OR ""hierarchical retrieval"" OR ""graph RAG"") AND (retrieval OR generation OR reasoning) AND evaluation",,2018-01-01,2026-08-04,en,,,,,not_run,试检索
+PILOT-F-001,F,IEEE Xplore,v1,"(""PDF parsing"" OR ""document layout"" OR ""table extraction"" OR ""chart understanding"") AND (financial OR scientific OR report) AND (benchmark OR evaluation)",,2018-01-01,2026-08-04,en,,,,,not_run,试检索
+PILOT-G-001,G,Semantic Scholar,v1,"(agent OR ""multi-agent"" OR ""tool use"") AND (benchmark OR evaluation OR trajectory OR collaboration OR recovery)",,2018-01-01,2026-08-04,en,,,,,not_run,试检索
+PILOT-ZH-001,"B;C;D",CNKI,v1,"(金融 OR 投研 OR 券商研报 OR 医药研报) AND (文档理解 OR 问答 OR 摘要 OR 比较推理 OR 数值推理) AND (评价 OR 指标 OR 基准 OR 事实一致性 OR 证据归因)",,2018-01-01,2026-08-04,zh,,,,,not_run,中文试检索

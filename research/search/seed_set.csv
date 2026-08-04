@@ -1,0 +1,19 @@
+literature_id,title,year,topic_cluster,url,is_seed,is_anchor,expected_database,search_hit_source,recall_status,primary_reviewer,secondary_reviewer
+LIT-2021-001,"The PRISMA 2020 statement: an updated guideline for reporting systematic reviews",2021,A,https://doi.org/10.1136/bmj.n71,true,true,"PubMed;Crossref",,not_tested,成员1,成员2
+LIT-2021-002,"Datasheets for Datasets",2021,A,https://arxiv.org/abs/1803.09010,true,true,"Semantic Scholar;Crossref",,not_tested,成员1,成员2
+LIT-2022-001,"Successful Combination of Database Search and Snowballing for Identification of Primary Studies in Systematic Literature Studies",2022,A,https://doi.org/10.1016/j.infsof.2022.106908,true,false,"Scopus;Semantic Scholar",,not_tested,成员1,成员2
+LIT-2023-001,"FinanceBench: A New Benchmark for Financial Question Answering",2023,B,https://arxiv.org/abs/2311.11944,true,true,"arXiv;Semantic Scholar",,not_tested,成员2,成员3
+LIT-2021-003,"FinQA: A Dataset of Numerical Reasoning over Financial Data",2021,B,https://aclanthology.org/2021.emnlp-main.300/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员2,成员3
+LIT-2021-004,"TAT-QA: A Question Answering Benchmark on a Hybrid of Tabular and Textual Content in Finance",2021,B,https://aclanthology.org/2021.acl-long.254/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员2,成员3
+LIT-2024-001,"FinBen: A Holistic Financial Benchmark for Large Language Models",2024,"B;G",https://proceedings.neurips.cc/paper_files/paper/2024/hash/adb1d9fa8be4576d28703b396b82ba1b-Abstract-Datasets_and_Benchmarks_Track.html,true,true,"NeurIPS;Semantic Scholar",,not_tested,成员2,成员3
+LIT-2025-001,"FinLFQA: Evaluating Attributed Text Generation of LLMs in Financial Long-Form Question Answering",2025,"B;D",https://aclanthology.org/2025.findings-emnlp.908/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2025-002,"MEBench: Benchmarking Large Language Models for Cross-Document Multi-Entity Question Answering",2025,C,https://aclanthology.org/2025.emnlp-main.77/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2025-003,"How to Compare Things Properly? A Study of Argument Relevance in Comparative Question Answering",2025,C,https://aclanthology.org/2025.acl-long.765/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2022-002,"QAFactEval: Improved QA-Based Factual Consistency Evaluation for Summarization",2022,D,https://aclanthology.org/2022.naacl-main.187/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2023-002,"Enabling Large Language Models to Generate Text with Citations",2023,D,https://aclanthology.org/2023.emnlp-main.398/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2026-001,"Benchmarking LLM's Capability in Reasoning over Conflicting Web References",2026,D,https://aclanthology.org/2026.acl-long.11/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2024-002,"From Local to Global: A Graph RAG Approach to Query-Focused Summarization",2024,E,https://arxiv.org/abs/2404.16130,true,true,"arXiv;Semantic Scholar",,not_tested,成员4,成员5
+LIT-2024-003,"HippoRAG: Neurobiologically Inspired Long-Term Memory for Large Language Models",2024,E,https://proceedings.neurips.cc/paper_files/paper/2024/hash/6ddc001d07ca4f319af96a3024f6dbd1-Abstract-Conference.html,true,false,"NeurIPS;Semantic Scholar",,not_tested,成员4,成员5
+LIT-2024-004,"AgentBench: Evaluating LLMs as Agents",2024,G,https://arxiv.org/abs/2308.03688,true,true,"ICLR;arXiv;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2025-004,"MultiAgentBench: Evaluating the Collaboration and Competition of LLM agents",2025,G,https://aclanthology.org/2025.acl-long.421/,true,true,"ACL Anthology;Semantic Scholar",,not_tested,成员5,成员1
+LIT-2023-003,"GAIA: a benchmark for General AI Assistants",2023,G,https://arxiv.org/abs/2311.12983,true,false,"arXiv;Semantic Scholar",,not_tested,成员5,成员1

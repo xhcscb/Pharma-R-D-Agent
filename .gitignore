@@ -1,0 +1,24 @@
+# Copyrighted or access-controlled source documents
+papers/
+*.pdf
+*.doc
+*.docx
+
+# Raw exports and temporary working files
+research/search/raw_exports/
+research/search/tmp/
+*.ris
+*.enw
+*.nbib
+*.xlsx
+~$*
+
+# Local tools and caches
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# Keep intentionally empty directories
+!.gitkeep
