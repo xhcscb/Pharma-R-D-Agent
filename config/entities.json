@@ -1,0 +1,50 @@
+{
+  "Company": [
+    {
+      "canonical_name": "\u6052\u745e\u533b\u836f",
+      "aliases": ["\u6c5f\u82cf\u6052\u745e\u533b\u836f\u80a1\u4efd\u6709\u9650\u516c\u53f8", "Hengrui", "Hengrui Pharma"],
+      "external_ids": {"stock_code": "600276.SH"}
+    },
+    {
+      "canonical_name": "\u767e\u6d4e\u795e\u5dde",
+      "aliases": ["BeiGene", "BeOne Medicines"],
+      "external_ids": {"stock_code": "688235.SH"}
+    }
+  ],
+  "Drug": [
+    {
+      "canonical_name": "\u5361\u745e\u5229\u73e0\u5355\u6297",
+      "aliases": ["Camrelizumab", "\u827e\u745e\u5361"],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "\u6cfd\u5e03\u66ff\u5c3c",
+      "aliases": ["Zanubrutinib", "\u767e\u60a6\u6cfd"],
+      "external_ids": {}
+    }
+  ],
+  "Target": [
+    {
+      "canonical_name": "PD-1",
+      "aliases": ["PD1", "\u7a0b\u5e8f\u6027\u6b7b\u4ea1\u53d7\u4f531", "\u7a0b\u5e8f\u6027\u6b7b\u4ea1\u53d7\u4f53 1"],
+      "external_ids": {"gene": "PDCD1"}
+    },
+    {
+      "canonical_name": "BTK",
+      "aliases": ["Bruton's tyrosine kinase", "\u5e03\u9c81\u987f\u916a\u6c28\u9178\u6fc0\u9176"],
+      "external_ids": {"gene": "BTK"}
+    }
+  ],
+  "Indication": [
+    {
+      "canonical_name": "\u975e\u5c0f\u7ec6\u80de\u80ba\u764c",
+      "aliases": ["NSCLC"],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "\u6dcb\u5df4\u7624",
+      "aliases": ["lymphoma"],
+      "external_ids": {}
+    }
+  ]
+}

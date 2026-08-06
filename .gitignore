@@ -3,6 +3,17 @@ papers/
 *.pdf
 *.doc
 *.docx
+data/objects/
+data/restricted/
+data/runtime/
+data/exports/
+models/
+indexes/
+audio/
+*.mp3
+*.wav
+*.m4a
+*.mp4
 
 # Raw exports and temporary working files
 research/search/raw_exports/
@@ -17,6 +28,15 @@ research/search/tmp/
 .venv/
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.env
+*.db
+*.sqlite
+*.sqlite3
+*.log
 .DS_Store
 Thumbs.db
 

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pharma-agent/schemas/parsed-document.schema.json",
+  "title": "ParsedDocument",
+  "type": "object",
+  "required": ["document_id", "document_version_id", "document_type", "elements"],
+  "properties": {
+    "document_id": {"type": "string"},
+    "document_version_id": {"type": "string"},
+    "document_type": {"type": "string"},
+    "language": {"type": "string"},
+    "metadata": {"type": "object"},
+    "elements": {"type": "array"},
+    "utterances": {"type": "array"},
+    "parse_quality": {"type": "object"},
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  }
+}
