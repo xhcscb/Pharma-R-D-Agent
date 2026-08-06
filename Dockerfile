@@ -9,10 +9,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml README.md ./
+COPY pyproject.toml uv.lock README.md ./
+RUN python -m pip install --upgrade pip uv==0.12.2 \
+    && uv export --locked --no-dev \
+       --extra documents --extra audio --extra ml \
+       --no-emit-project --format requirements-txt \
+       --output-file /tmp/requirements.txt \
+    && python -m pip install --require-hashes -r /tmp/requirements.txt
+
 COPY src ./src
-ARG APP_EXTRAS=documents,audio,ml
-RUN python -m pip install --upgrade pip && python -m pip install ".[${APP_EXTRAS}]"
+RUN python -m pip install --no-deps .
 
 COPY migrations ./migrations
 COPY alembic.ini ./alembic.ini

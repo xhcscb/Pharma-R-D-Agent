@@ -1,10 +1,7 @@
 name: pharma-analyst-data
 
 x-app: &app
-  build:
-    context: .
-    args:
-      APP_EXTRAS: ${APP_EXTRAS:-documents,audio,ml}
+  build: .
   env_file:
     - path: .env
       required: false

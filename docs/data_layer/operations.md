@@ -39,8 +39,8 @@ profiles separately on a laptop.
 - search: Elasticsearch.
 - full: every service.
 
-The Docker image installs documents, audio, and ML extras by default. Override
-APP_EXTRAS only when intentionally building a smaller development image.
+The Docker image installs the lockfile-pinned documents, audio, and ML extras
+required by the full parsing pipeline.
 
 ## Access and licensing
 
