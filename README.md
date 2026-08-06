@@ -1,6 +1,6 @@
 # 医药行业券商分析师 Agent 平台研究仓库
 
-本仓库当前只实施第一阶段：文献调研与研究设计冻结。当前阶段不包含爬虫、PDF 解析器、数据库或 Agent 运行代码。
+This repository contains both the phase-one research protocol and the runnable data layer.
 
 ## 首要入口
 
@@ -38,3 +38,27 @@
 ```
 
 验证脚本检查必需文件、CSV 表头、文献编号、种子/锚点数量、枚举值和受版权文件误提交风险。
+
+## Runnable data layer
+
+The repository now includes a provenance-first, replayable implementation under `src/pharma_data`:
+
+- Five controlled source families: licensed research reports, official clinical records, official financial filings, official news, and authorized earnings calls.
+- PDF, HTML, JSON, XLSX, XBRL, image, text, audio, and video routing.
+- Evidence-addressable entity, relation, financial-value, conflict, and review records.
+- PostgreSQL canonical truth plus outbox-only Neo4j, Milvus, TimescaleDB, and Elasticsearch projections.
+- FastAPI REST, GraphQL, `datactl`, Alembic, Docker Compose, dataset snapshots, and benchmark metrics.
+
+Start with [data-layer operations](docs/data_layer/operations.md), [architecture](docs/data_layer/architecture.md), and [governance](docs/data_layer/governance.md).
+
+Quick verification:
+
+```powershell
+uv sync --extra dev
+uv run alembic upgrade head
+uv run pytest -q
+uv run datactl eval all
+docker compose --profile full config --quiet
+```
+
+Heavy PDF/OCR and audio dependencies are locked in `uv.lock` and installed in the production container. Raw reports, recordings, model weights, database volumes, and unlicensed content remain outside Git.

@@ -1,0 +1,2 @@
+source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,company,report_period
+CALL-DEMO-001,Official earnings call transcript example,2026-02-01,https://example.invalid/call,../../tests/fixtures/earnings_call.txt,public,public,Example Pharma,2025Q4

@@ -1,0 +1,2 @@
+source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,registry_id
+CLINICAL-DEMO-001,Clinical results document example,2026-01-10,https://clinicaltrials.gov/study/NCT00000000,../../tests/fixtures/clinical_record.json,public,public,NCT00000000

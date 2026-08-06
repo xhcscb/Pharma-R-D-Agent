@@ -1,0 +1,2 @@
+source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,exchange,stock_code,report_period
+FIN-DEMO-001,Official annual report example,2025-12-31,https://example.invalid/official-report,../../tests/fixtures/financial_report.xml,public,public,SSE,600276.SH,2025
