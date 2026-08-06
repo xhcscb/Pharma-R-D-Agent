@@ -1,0 +1,11 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT00000000",
+      "briefTitle": "Synthetic oncology study"
+    },
+    "statusModule": {
+      "overallStatus": "RECRUITING"
+    }
+  }
+}

@@ -12,6 +12,12 @@ def main() -> int:
     problems: list[str] = []
 
     for path in sorted(repo_root.rglob("*.csv")):
+        relative_path = path.relative_to(repo_root)
+        if any(
+            part in {".git", ".venv", "data"} or part.startswith("pytest-cache-files-")
+            for part in relative_path.parts
+        ):
+            continue
         if path.name.endswith(".corrected.csv"):
             continue
         with path.open(encoding="utf-8-sig", newline="") as stream:
@@ -23,7 +29,9 @@ def main() -> int:
             continue
 
         expected_width = len(rows[0])
-        bad_rows = [index for index, row in enumerate(rows[1:], start=2) if len(row) != expected_width]
+        bad_rows = [
+            index for index, row in enumerate(rows[1:], start=2) if len(row) != expected_width
+        ]
         if bad_rows:
             problems.append(
                 f"{relative_path}: expected {expected_width} columns; malformed rows {bad_rows}"

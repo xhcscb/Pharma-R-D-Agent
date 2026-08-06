@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance" xmlns:ex="https://example.invalid/xbrl">
+  <ex:Revenue contextRef="FY2025" unitRef="CNY" decimals="0">100000000</ex:Revenue>
+  <ex:ResearchExpense contextRef="FY2025" unitRef="CNY" decimals="0">25000000</ex:ResearchExpense>
+</xbrl>
