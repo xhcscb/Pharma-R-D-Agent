@@ -1,0 +1,2 @@
+source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,publisher
+NEWS-DEMO-001,Official issuer news example,2026-01-20,https://example.invalid/news,../../tests/fixtures/official_news.html,public,public,Issuer IR

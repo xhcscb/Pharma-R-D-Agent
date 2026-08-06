@@ -1,0 +1,2 @@
+source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,institution,analyst,stock_code,rating
+REPORT-DEMO-001,Authorized research report example,2026-01-15,,../../data/restricted/report-demo.pdf,authorized_restricted,team_internal,Example Securities,Example Analyst,600276.SH,Buy

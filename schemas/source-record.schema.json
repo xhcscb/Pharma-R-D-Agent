@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pharma-agent/schemas/source-record.schema.json",
+  "title": "SourceRecordEnvelope",
+  "type": "object",
+  "required": ["source_name", "source_record_id", "title", "license_status", "access_class", "document_type"],
+  "properties": {
+    "source_name": {"type": "string", "minLength": 1},
+    "source_record_id": {"type": "string", "minLength": 1},
+    "canonical_url": {"type": ["string", "null"], "format": "uri"},
+    "title": {"type": "string", "minLength": 1},
+    "published_at": {"type": ["string", "null"], "format": "date-time"},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "content_urls": {"type": "array", "items": {"type": "string", "format": "uri"}},
+    "license_status": {"enum": ["public", "authorized_restricted", "metadata_only", "prohibited", "unknown"]},
+    "access_class": {"enum": ["public", "team_internal", "restricted"]},
+    "document_type": {"type": "string"},
+    "raw_metadata": {"type": "object"}
+  },
+  "additionalProperties": false
+}
