@@ -1,1 +1,2 @@
 deviation_id,date,original_rule,new_rule,reason,affected_records,proposer,approver,status
+DEV-2026-001,2026-08-06,"v1仅规定高层检索、筛选和验收原则","v2补充文献状态机、数据源覆盖、校准阈值、评分分歧处理、十二步流程和决策冻结条件","项目负责人要求计划、目标和执行流程更详细清晰；当前尚未开始正式检索和筛选，因此不影响既有研究决定","第一阶段后续全部检索、筛选、深读、综合和决策记录",Codex,项目负责人,applied
