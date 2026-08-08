@@ -1,18 +1,31 @@
-# Canonical data model
+# 统一数据模型
 
-PostgreSQL is the only source of truth. The schema is created by Alembic revision
-0001_initial and contains source, artifact, document-version, processing, evidence,
-fact, review, outbox, projection-checkpoint, snapshot, and audit records.
+PostgreSQL 是唯一数据真相来源。Alembic 迁移 `0001_initial` 建立来源、原始文件、文档版本、任务、证据、事实、复核、Outbox、投影检查点、数据快照和审计记录。
 
-Stable IDs are derived from document version, evidence location, and normalized
-content for document elements, entity mentions, assertions, conflicts, and audio
-utterances. Reprocessing the same version therefore updates lineage without
-duplicating facts.
+## 稳定标识
 
-An Assertion stores subject, predicate, entity or literal object, unit, qualifiers,
-valid time, as-of date, assertion mode, confidence, and review state. Evidence is a
-separate record containing the document version plus PDF page/bounding box or audio
-utterance/time range. Approval is rejected when evidence is missing.
+文档元素、实体提及、主张、冲突和语音片段的稳定 ID 由文档版本、证据位置和规范化内容派生。同一版本重新处理时会更新血缘信息，不会重复生成事实。
 
-Conflicts preserve every source assertion. Resolution is additive and never
-implements last-value-wins deletion.
+## 主张
+
+`Assertion` 保存：
+
+- 主体和谓词；
+- 实体对象或字面值对象；
+- 单位和限定条件；
+- 有效时间与 `as_of_date`；
+- 主张模式、置信度和复核状态。
+
+证据单独存储，并关联到文档版本。PDF 证据包含页码、坐标和字符区间；音频证据包含发言片段和时间范围。主张缺少证据时不能获批。
+
+## 冲突
+
+冲突组保留来自所有来源的原始主张。冲突解决通过新增复核和解决记录完成，不删除旧主张，也不采用“只保留最新值”的覆盖策略。
+
+## 质量分层
+
+- Gold：人工确认且证据完整；
+- Silver：自动结果，证据完整但未复核；
+- Candidate：低置信度或字段不完整；
+- Conflict：存在未解决冲突；
+- Quarantine：许可、文件或解析异常。

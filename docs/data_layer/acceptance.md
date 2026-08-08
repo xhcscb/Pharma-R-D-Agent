@@ -1,20 +1,22 @@
-# Acceptance evidence
+# 数据层验收说明
 
-Automated repository checks cover contract validation, source quarantine,
-permission filtering, public snapshot isolation, parser routing, native-PDF
-coordinates, full JSON retention, financial cell evidence, entity and relation
-evidence, conflict preservation, deterministic reprocessing, review gates,
-outbox dispatch, REST/GraphQL queries, projection schemas, Alembic, CLI, and all
-Compose profiles.
+仓库自动化测试覆盖以下内容：
 
-Corpus-dependent checks require project-owned or licensed Gold data:
+- 数据契约与字段校验；
+- 来源隔离、许可状态和访问权限过滤；
+- 公开数据快照的权限隔离；
+- 文件解析路由、原生 PDF 坐标和完整 JSON 保留；
+- 财务单元格、实体、关系与原始证据的关联；
+- 冲突保留、幂等重处理和人工复核门禁；
+- Outbox 投影分发；
+- REST、GraphQL、CLI、Alembic 与全部 Compose 配置。
 
-- scanned-PDF CER and table TEDS;
-- entity, linking, relation, date, unit, and conflict thresholds;
-- real call ASR, diarization, and participant-name confirmation;
-- destructive rebuild against live Neo4j, Milvus, TimescaleDB, and Elasticsearch;
-- licensed sell-side report and public-export leak audit.
+以下指标必须使用项目自有或已获授权的 Gold 语料验证，不能只靠合成测试替代：
 
-Do not create the data-layer-v1.0.0 release tag until both automated checks and
-the corpus-dependent release report pass. Store the signed report as a dataset
-snapshot manifest, never as copyrighted raw documents.
+- 扫描 PDF 字符错误率与表格 TEDS；
+- 实体抽取、实体链接、关系抽取、日期、单位与冲突检测指标；
+- 真实电话会议的语音识别、说话人分离和身份确认；
+- Neo4j、Milvus、TimescaleDB 与 Elasticsearch 的在线重建；
+- 授权研报导入和公开快照泄漏审计。
+
+只有“自动化测试报告”和“Gold 语料验收报告”均通过后，才可创建 `data-layer-v1.0.0` 标签。签字版验收结果应保存为数据集快照清单；受版权保护的原始研报和录音不得进入 Git。

@@ -1,16 +1,19 @@
-# Controlled source catalog
+# 受控数据源目录
 
-| Family | Adapter | Authority preference | Supported inputs | Default policy |
+| 数据类别 | 适配器 | 权威来源优先级 | 支持格式 | 默认策略 |
 |---|---|---|---|---|
-| Sell-side research | ResearchReportManifestAdapter | Licensed institution or explicitly authorized file | PDF | authorized_restricted / team_internal |
-| Clinical | ClinicalTrialsGovAdapter | ClinicalTrials.gov API v2 | full JSON | public |
-| China clinical | ChinaDrugTrialsManifestAdapter | Official registry URL or reviewed manifest | HTML, JSON | public |
-| Regulatory | CdeManifestAdapter | CDE/NMPA official publication | PDF, HTML, JSON | public |
-| Financial | FinancialReportAdapter | Exchange, CNInfo, HKEX, or issuer IR | XBRL/XML, XLSX, PDF | public |
-| News | NewsAdapter | Regulator, exchange, or issuer IR | RSS, HTML, JSON | public |
-| Calls | EarningsCallAdapter | Issuer transcript, IR record, authorized recording | TXT, HTML, PDF, MP3, WAV, MP4 | public unless restricted by manifest |
+| 券商研报 | `ResearchReportManifestAdapter` | 已授权机构或明确授权文件 | PDF | `authorized_restricted / team_internal` |
+| 国际临床 | `ClinicalTrialsGovAdapter` | ClinicalTrials.gov API v2 | 完整 JSON | `public` |
+| 中国临床 | `ChinaDrugTrialsManifestAdapter` | 官方注册平台 URL 或经复核清单 | HTML、JSON | `public` |
+| 药监文件 | `CdeManifestAdapter` | CDE/NMPA 官方发布 | PDF、HTML、JSON | `public` |
+| 财务报告 | `FinancialReportAdapter` | 交易所、巨潮资讯、HKEX 或公司 IR | XBRL/XML、XLSX、PDF | `public` |
+| 新闻 | `NewsAdapter` | 监管机构、交易所或公司 IR | RSS、HTML、JSON | `public` |
+| 电话会议 | `EarningsCallAdapter` | 公司官方文字稿、IR 记录或授权录音 | TXT、HTML、PDF、MP3、WAV、MP4 | 由清单声明 |
 
-Every discovered record must include source ID, title, license status, and access class.
-Records marked metadata_only, prohibited, or unknown are retained as source metadata,
-set to QUARANTINED, and never fetched. A non-public license cannot declare public
-access. The system never implements an unrestricted brokerage-site crawler.
+## 接入约束
+
+每条来源记录都必须包含来源记录 ID、标题、许可状态和访问等级。标记为 `metadata_only`、`prohibited` 或 `unknown` 的记录只保留来源元数据，状态设为 `QUARANTINED`，不得抓取正文。
+
+非公开许可不能声明公开访问。系统不提供无限制券商网站爬虫，也不得绕过登录、付费墙、验证码或访问控制。
+
+清单字段、示例和导入命令见[数据清单编写指南](manifest_guide.md)。

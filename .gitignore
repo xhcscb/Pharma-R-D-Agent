@@ -23,6 +23,7 @@ research/search/tmp/
 *.nbib
 *.xlsx
 ~$*
+backups/
 
 # Local tools and caches
 .venv/
