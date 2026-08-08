@@ -1,17 +1,34 @@
-# Data governance
+# 数据治理
 
-A1 covers regulators, exchanges, and official trial registries. A2 covers issuer
-filings, IR publications, and official calls. B1 covers public or licensed
-sell-side research. B2 covers peer-reviewed literature and recognized databases.
+## 来源等级
 
-license_status is mandatory: public, authorized_restricted, metadata_only,
-prohibited, or unknown. Unknown and prohibited records are quarantined. Public
-snapshots contain only public document versions. Restricted raw content never
-belongs in Git.
+- A1：监管机构、交易所和官方临床注册平台；
+- A2：上市公司公告、投资者关系材料和官方电话会议；
+- B1：公开或已获授权的券商研报；
+- B2：同行评审论文和公认数据库。
 
-Every approved assertion must reference a document element or an audio utterance.
-Conflicting assertions remain immutable. Resolution adds review records; it never
-deletes the disagreeing source claims.
+## 许可与访问
 
-Models create Candidate or Silver data. Only an explicit review decision creates
-Gold data and outbox events for knowledge-store projection.
+`license_status` 必填，可选值为：
+
+- `public`；
+- `authorized_restricted`；
+- `metadata_only`；
+- `prohibited`；
+- `unknown`。
+
+`unknown` 和 `prohibited` 记录只保留元数据并进入隔离区，不下载正文。公开数据快照只能包含 `public` 文档版本。受限原始文件不得进入 Git。
+
+## 证据与复核
+
+每条已批准主张必须关联文档元素或语音片段。冲突主张保持不可变，解决动作只新增复核记录，不删除存在分歧的来源事实。
+
+模型只能生成 Candidate 或 Silver 数据。只有明确的人工复核决定才能生成 Gold 数据，并触发知识存储投影。
+
+## 基本原则
+
+- 最小权限：操作人员只获取完成任务所需权限；
+- 来源可追溯：每条事实可回到原始来源和证据位置；
+- 公开与受限分离：查询、导出和快照均强制检查权限；
+- 原始数据不改写：清洗结果另存，保留原始值；
+- 日志可审计：导入、复核、投影和快照操作均留痕。

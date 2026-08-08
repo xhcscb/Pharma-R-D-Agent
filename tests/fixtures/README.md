@@ -1,7 +1,10 @@
-# Synthetic fixtures
+# 合成测试数据
 
-These files are authored test data and may be committed. They exercise official
-news HTML, complete clinical JSON retention, financial XBRL facts, and call
-transcript parsing. Binary PDFs, recordings, and model weights are deliberately
-not stored in Git; tests create minimal binary fixtures inside temporary
-directories when required.
+本目录中的文件均为团队编写的合成测试数据，可以提交 Git。它们用于验证：
+
+- 官方新闻 HTML 解析；
+- 临床 JSON 完整保留；
+- 财务 XBRL/XML 事实和单元格证据；
+- 电话会议文字稿解析。
+
+二进制 PDF、录音和模型权重不会存入 Git。需要这些输入时，测试会在临时目录中生成最小化二进制样例。
