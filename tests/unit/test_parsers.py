@@ -45,6 +45,9 @@ def test_json_parser_keeps_full_source_record(tmp_path) -> None:
     )
 
     assert parsed.elements[0].structured_payload["record"] == payload
+    assert parsed.elements[0].text == ""
+    assert parsed.elements[1].structured_payload["json_path"].endswith(".nctId")
+    assert "NCT00000001" in parsed.elements[1].text
 
 
 def test_spreadsheet_parser_preserves_sheet_rows(tmp_path) -> None:

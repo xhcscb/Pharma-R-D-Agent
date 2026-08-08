@@ -16,6 +16,8 @@
 数据层：
 
 - [数据层文档导航](docs/data_layer/README.md)
+- [权威数据源配置](docs/data_layer/authoritative_sources.md)
+- [权威数据源演示](docs/data_layer/authoritative_source_demo.md)
 - [快速启动](docs/data_layer/quickstart.md)
 - [完整操作手册](docs/data_layer/operations.md)
 - [数据清单编写指南](docs/data_layer/manifest_guide.md)

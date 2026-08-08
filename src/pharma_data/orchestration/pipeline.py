@@ -52,7 +52,7 @@ class PipelineRunner:
             job,
             trace_id=trace_id,
             producer="controlled-data-pipeline",
-            producer_version="0.1.0",
+            producer_version="0.2.0",
             schema_version="1.0",
             input_hash=version.content_hash,
         )

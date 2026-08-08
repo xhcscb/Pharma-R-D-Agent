@@ -32,7 +32,7 @@ class ParserRouter:
 
 class DocumentParser:
     name = "DocParser"
-    version = "0.1.0"
+    version = "0.2.0"
 
     def __init__(self, router: ParserRouter | None = None):
         self.router = router or ParserRouter()

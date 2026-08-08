@@ -4,9 +4,9 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-from lxml import etree
-from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
+from lxml import etree  # type: ignore[import-untyped]
+from openpyxl import load_workbook  # type: ignore[import-untyped]
+from openpyxl.utils import get_column_letter  # type: ignore[import-untyped]
 
 from pharma_data.contracts import DocumentType, ElementType, ParsedDocument
 from pharma_data.parsers.base import Parser
@@ -16,7 +16,7 @@ from pharma_data.utils.hashing import stable_uuid
 
 class JsonParser(Parser):
     name = "json-structure"
-    version = "0.1.0"
+    version = "0.2.0"
     media_types = {"application/json"}
 
     def parse(
@@ -29,24 +29,61 @@ class JsonParser(Parser):
         artifact_id: str,
     ) -> ParsedDocument:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        text = json.dumps(payload, ensure_ascii=False, indent=2)
-        element = make_element(
-            document_version_id=document_version_id,
-            element_type=ElementType.STRUCTURED_RECORD,
-            reading_order=0,
-            text=text,
-            parser_name=self.name,
-            parser_version=self.version,
-            structured_payload={"record": payload},
-        )
+        elements = [
+            make_element(
+                document_version_id=document_version_id,
+                element_type=ElementType.STRUCTURED_RECORD,
+                reading_order=0,
+                text="",
+                parser_name=self.name,
+                parser_version=self.version,
+                structured_payload={"record": payload},
+            )
+        ]
+        for order, (json_path, value) in enumerate(self._text_fields(payload), start=1):
+            if isinstance(value, dict):
+                display_value = json.dumps(value, ensure_ascii=False, sort_keys=True)
+            elif isinstance(value, list):
+                display_value = "; ".join(str(item) for item in value)
+            else:
+                display_value = str(value)
+            elements.append(
+                make_element(
+                    document_version_id=document_version_id,
+                    element_type=ElementType.PARAGRAPH,
+                    reading_order=order,
+                    text=f"{json_path}: {display_value}",
+                    parser_name=self.name,
+                    parser_version=self.version,
+                    structured_payload={"json_path": json_path, "value": value},
+                )
+            )
         return ParsedDocument(
             document_id=document_id,
             document_version_id=document_version_id,
             document_type=document_type,
             metadata={"artifact_id": artifact_id},
-            elements=[element],
-            parse_quality={"structured": 1.0},
+            elements=elements,
+            parse_quality={"structured": 1.0, "field_elements": float(len(elements) - 1)},
         )
+
+    @classmethod
+    def _text_fields(cls, value: Any, path: str = "$") -> list[tuple[str, Any]]:
+        fields: list[tuple[str, Any]] = []
+        if isinstance(value, dict):
+            if "val" in value and ("filed" in value or "end" in value):
+                return [(path, value)]
+            for key, child in value.items():
+                fields.extend(cls._text_fields(child, f"{path}.{key}"))
+        elif isinstance(value, list):
+            if value and all(not isinstance(item, (dict, list)) for item in value):
+                fields.append((path, value))
+            else:
+                for index, child in enumerate(value):
+                    fields.extend(cls._text_fields(child, f"{path}[{index}]"))
+        elif value is not None:
+            fields.append((path, value))
+        return fields
 
 
 class SpreadsheetParser(Parser):

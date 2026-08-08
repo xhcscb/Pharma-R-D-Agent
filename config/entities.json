@@ -9,6 +9,11 @@
       "canonical_name": "\u767e\u6d4e\u795e\u5dde",
       "aliases": ["BeiGene", "BeOne Medicines"],
       "external_ids": {"stock_code": "688235.SH"}
+    },
+    {
+      "canonical_name": "\u9ed8\u6c99\u4e1c",
+      "aliases": ["Merck & Co.", "Merck & Co., Inc.", "MSD"],
+      "external_ids": {"ticker": "MRK", "sec_cik": "0000310158"}
     }
   ],
   "Drug": [
@@ -20,6 +25,11 @@
     {
       "canonical_name": "\u6cfd\u5e03\u66ff\u5c3c",
       "aliases": ["Zanubrutinib", "\u767e\u60a6\u6cfd"],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "\u5e15\u535a\u5229\u73e0\u5355\u6297",
+      "aliases": ["Pembrolizumab", "KEYTRUDA", "KEYTRUDA QLEX"],
       "external_ids": {}
     }
   ],
@@ -38,7 +48,7 @@
   "Indication": [
     {
       "canonical_name": "\u975e\u5c0f\u7ec6\u80de\u80ba\u764c",
-      "aliases": ["NSCLC"],
+      "aliases": ["NSCLC", "Non-Small Cell Lung Cancer", "non-small cell lung cancer"],
       "external_ids": {}
     },
     {

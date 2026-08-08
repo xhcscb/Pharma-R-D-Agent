@@ -19,7 +19,8 @@ Copy-Item .env.example .env
 编辑 `.env`，至少替换：
 
 - `INTERNAL_API_KEY`；
-- `HTTP_USER_AGENT` 中的联系邮箱。
+- `PROJECT_CONTACT_EMAIL`：团队真实可联系邮箱，SEC 同步必须；
+- `OPENFDA_API_KEY`：可选，批量使用 openFDA 时建议填写。
 
 `.env` 已被忽略，不要提交。
 
@@ -42,7 +43,22 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 返回健康状态后，可打开 `http://127.0.0.1:8000/docs`。
 
-## 4. 导入一份合成新闻
+## 4. 先检查权威来源
+
+~~~powershell
+.venv\Scripts\datactl.exe source list
+.venv\Scripts\datactl.exe source doctor --live
+~~~
+
+运行真实小样本演示：
+
+~~~powershell
+.venv\Scripts\datactl.exe source demo
+~~~
+
+演示结果见 `data/demo/authoritative-demo-report.json`。完整说明见[权威数据源调试与演示](authoritative_source_demo.md)。
+
+## 5. 导入一份合成新闻
 
 仓库中的新闻示例只用于验证流程：
 
@@ -65,7 +81,7 @@ docker compose --profile core exec api datactl pipeline run DOCUMENT_ID
 
 如果 Worker 已自动完成任务，重复运行会依据幂等键复用结果，不应生成重复事实。
 
-## 5. 查看待复核结果
+## 6. 查看待复核结果
 
 ~~~powershell
 docker compose --profile core exec api datactl review list --limit 20
@@ -77,7 +93,7 @@ docker compose --profile core exec api datactl review list --limit 20
 docker compose --profile core exec api datactl review approve assertion ASSERTION_ID --reviewer "测试人员" --rationale "已核对合成新闻原文和证据位置"
 ~~~
 
-## 6. 启动并验证全部投影
+## 7. 启动并验证全部投影
 
 ~~~powershell
 docker compose --profile full up -d
@@ -94,7 +110,7 @@ docker compose --profile full exec api datactl projection rebuild timescale
 docker compose --profile full exec api datactl projection rebuild elasticsearch
 ~~~
 
-## 7. 执行本地质量检查
+## 8. 执行本地质量检查
 
 如果本机已安装 Python 3.12 和 uv：
 
@@ -112,7 +128,7 @@ docker compose --profile full config --quiet
 docker compose --profile full exec api datactl eval all
 ~~~
 
-## 8. 停止
+## 9. 停止
 
 ~~~powershell
 docker compose --profile full down

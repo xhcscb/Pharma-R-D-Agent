@@ -1,8 +1,11 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import typer
+from sqlalchemy import select
 
 from pharma_data.config import get_settings
 from pharma_data.connectors import (
@@ -11,15 +14,22 @@ from pharma_data.connectors import (
     ClinicalDocumentAdapter,
     ClinicalTrialsGovAdapter,
     EarningsCallAdapter,
+    FdaNewsAdapter,
     FinancialReportAdapter,
     NewsAdapter,
+    OpenFdaDrugAdapter,
     ResearchReportManifestAdapter,
+    SecCompanyFactsAdapter,
+    SecEdgarFilingsAdapter,
+    SourceAdapter,
 )
+from pharma_data.connectors.http_client import authoritative_get
 from pharma_data.contracts import AccessClass, ReviewStatus
 from pharma_data.datasets import DataQualityValidator, DatasetBenchmarkEvaluator
 from pharma_data.orchestration.ingestion import IngestionService
 from pharma_data.orchestration.pipeline import PipelineRunner
 from pharma_data.storage.canonical import create_schema, session_scope
+from pharma_data.storage.canonical.database import get_engine
 from pharma_data.storage.canonical.models import Document, DocumentVersion, ProcessingJob
 from pharma_data.storage.canonical.repository import CanonicalRepository
 from pharma_data.storage.object_store import LocalObjectStore
@@ -55,6 +65,25 @@ MANIFEST_ADAPTERS = {
     "earnings_calls": EarningsCallAdapter,
 }
 
+SOURCE_CATALOG_PATH = Path("config/authoritative_sources.json")
+
+
+def load_source_catalog() -> dict[str, Any]:
+    if not SOURCE_CATALOG_PATH.is_file():
+        raise FileNotFoundError(f"权威来源目录不存在: {SOURCE_CATALOG_PATH}")
+    payload = json.loads(SOURCE_CATALOG_PATH.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("权威来源目录根节点必须是 JSON 对象")
+    return dict(payload)
+
+
+def fda_feeds() -> dict[str, str]:
+    return {
+        str(source["feed_name"]): str(source["base_url"])
+        for source in load_source_catalog()["sources"]
+        if source.get("sync_name") == "fda-news" and source.get("feed_name")
+    }
+
 
 def print_json(payload: Any) -> None:
     typer.echo(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
@@ -66,32 +95,248 @@ def db_migrate() -> None:
     typer.echo("Database schema is ready.")
 
 
+@source_app.command("list")
+def source_list() -> None:
+    catalog = load_source_catalog()
+    print_json(
+        {
+            "schema_version": catalog["schema_version"],
+            "sources": [
+                {
+                    key: source.get(key)
+                    for key in (
+                        "source_id",
+                        "category",
+                        "name",
+                        "authority",
+                        "authority_tier",
+                        "access_mode",
+                        "sync_name",
+                        "credential",
+                        "enabled",
+                        "note",
+                    )
+                    if source.get(key) is not None
+                }
+                for source in catalog["sources"]
+            ],
+        }
+    )
+
+
+@source_app.command("doctor")
+def source_doctor(
+    live: bool = typer.Option(False, help="执行只读网络探测"),
+    strict: bool = typer.Option(False, help="任一自动来源失败时返回非零退出码"),
+) -> None:
+    settings = get_settings()
+    results = []
+    failures = 0
+    for source in load_source_catalog()["sources"]:
+        access_mode = source["access_mode"]
+        result = {
+            "source_id": source["source_id"],
+            "access_mode": access_mode,
+            "status": "READY" if access_mode in {"api", "rss"} else "MANUAL_REQUIRED",
+        }
+        sec_identity: str | None = None
+        if str(source["source_id"]).startswith("sec_"):
+            try:
+                sec_identity = settings.identified_sec_user_agent()
+            except ValueError as exc:
+                result.update(status="NOT_CONFIGURED", detail=str(exc))
+                failures += 1
+                results.append(result)
+                continue
+        if live and access_mode in {"api", "rss"}:
+            headers = {"User-Agent": settings.http_user_agent}
+            if sec_identity:
+                headers["User-Agent"] = sec_identity
+            started = perf_counter()
+            try:
+                response = authoritative_get(
+                    str(source["probe_url"]),
+                    headers=headers,
+                    timeout=30,
+                    attempts=2,
+                )
+                result.update(
+                    status="OK",
+                    http_status=response.status_code,
+                    latency_ms=round((perf_counter() - started) * 1000),
+                )
+            except Exception as exc:  # noqa: BLE001 - doctor must report every source
+                result.update(
+                    status="UNAVAILABLE",
+                    detail=f"{type(exc).__name__}: {exc}",
+                    latency_ms=round((perf_counter() - started) * 1000),
+                )
+                failures += 1
+        results.append(result)
+    print_json({"live": live, "results": results, "automatic_failures": failures})
+    if strict and failures:
+        raise typer.Exit(1)
+
+
+@source_app.command("demo")
+def source_demo(
+    database: Path = typer.Option(Path("data/demo/authoritative-demo.db")),
+    object_store: Path = typer.Option(Path("data/demo/objects")),
+    report_path: Path = typer.Option(Path("data/demo/authoritative-demo-report.json")),
+) -> None:
+    """下载四个小样本并跑通解析、抽取和清洗，不删除既有演示数据。"""
+    database.parent.mkdir(parents=True, exist_ok=True)
+    object_store.mkdir(parents=True, exist_ok=True)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    engine = get_engine(f"sqlite:///{database.resolve().as_posix()}")
+    create_schema(engine)
+    feeds = fda_feeds()
+    specs: list[tuple[str, SourceAdapter, dict[str, Any]]] = [
+        (
+            "clinicaltrials",
+            ClinicalTrialsGovAdapter(),
+            {
+                "condition": "non-small cell lung cancer",
+                "intervention": "pembrolizumab",
+                "page_size": 1,
+            },
+        ),
+        (
+            "openfda",
+            OpenFdaDrugAdapter(),
+            {
+                "dataset": "label",
+                "search": "openfda.generic_name:pembrolizumab",
+                "page_size": 1,
+            },
+        ),
+        ("sec-companyfacts", SecCompanyFactsAdapter(), {"cik": "0000310158"}),
+        ("fda-news", FdaNewsAdapter(feeds["drugs"]), {"max_records": 1}),
+    ]
+    demo_report: dict[str, Any] = {
+        "started_at": datetime.now(UTC).isoformat(),
+        "database": str(database.resolve()),
+        "object_store": str(object_store.resolve()),
+        "sources": [],
+    }
+    for source_name, adapter, query in specs:
+        source_result: dict[str, Any] = {"source": source_name, "query": query}
+        try:
+            with session_scope(engine) as session:
+                before_jobs = set(session.scalars(select(ProcessingJob.id)).all())
+                report = IngestionService(session, LocalObjectStore(object_store)).ingest(
+                    adapter,
+                    query,
+                    max_pages=1,
+                )
+                session.flush()
+                current_jobs = set(session.scalars(select(ProcessingJob.id)).all())
+                pipeline_results = [
+                    PipelineRunner(session).run(job_id)
+                    for job_id in sorted(current_jobs - before_jobs)
+                ]
+                source_result.update(
+                    status="OK",
+                    ingestion=report.__dict__,
+                    pipeline=pipeline_results,
+                )
+        except Exception as exc:  # noqa: BLE001 - demo continues to show partial availability
+            source_result.update(status="FAILED", error=f"{type(exc).__name__}: {exc}")
+        demo_report["sources"].append(source_result)
+    demo_report["finished_at"] = datetime.now(UTC).isoformat()
+    demo_report["successful_sources"] = sum(
+        item["status"] == "OK" for item in demo_report["sources"]
+    )
+    report_path.write_text(
+        json.dumps(demo_report, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+    print_json(demo_report)
+
+
 @source_app.command("sync")
 def source_sync(
     source: str,
     condition: str | None = typer.Option(None),
     intervention: str | None = typer.Option(None),
+    dataset: str = typer.Option("label", help="openFDA 数据集"),
+    search: str | None = typer.Option(None, help="openFDA 查询表达式"),
+    cik: str | None = typer.Option(None, help="SEC CIK"),
+    forms: str = typer.Option("10-K,10-Q,20-F,6-K,8-K", help="SEC 表单类型"),
+    after_date: str | None = typer.Option(None, help="SEC 最早申报日，YYYY-MM-DD"),
+    feed: str = typer.Option("drugs", help="FDA RSS 名称"),
     page_size: int = typer.Option(100, min=1, max=1000),
     max_pages: int | None = typer.Option(None, min=1),
+    run_pipeline: bool = typer.Option(False, help="同步后立即运行本批次处理任务"),
 ) -> None:
-    if source != "clinicaltrials":
-        raise typer.BadParameter("Automated sync currently supports clinicaltrials")
+    adapter: Any
+    query: dict[str, Any]
+    if source == "clinicaltrials":
+        adapter = ClinicalTrialsGovAdapter()
+        query = {
+            key: value
+            for key, value in {
+                "condition": condition,
+                "intervention": intervention,
+                "page_size": page_size,
+            }.items()
+            if value is not None
+        }
+    elif source == "openfda":
+        adapter = OpenFdaDrugAdapter()
+        query = {
+            key: value
+            for key, value in {
+                "dataset": dataset,
+                "search": search,
+                "page_size": page_size,
+            }.items()
+            if value is not None
+        }
+    elif source == "sec-filings":
+        if not cik:
+            raise typer.BadParameter("sec-filings 必须提供 --cik")
+        adapter = SecEdgarFilingsAdapter()
+        query = {
+            key: value
+            for key, value in {
+                "cik": cik,
+                "forms": forms,
+                "after_date": after_date,
+                "page_size": page_size,
+            }.items()
+            if value is not None
+        }
+    elif source == "sec-companyfacts":
+        if not cik:
+            raise typer.BadParameter("sec-companyfacts 必须提供 --cik")
+        adapter = SecCompanyFactsAdapter()
+        query = {"cik": cik}
+    elif source == "fda-news":
+        feed_url = fda_feeds().get(feed)
+        if not feed_url:
+            raise typer.BadParameter(f"feed 必须是: {', '.join(sorted(fda_feeds()))}")
+        adapter = FdaNewsAdapter(feed_url)
+        query = {"max_records": page_size}
+    else:
+        raise typer.BadParameter(
+            "source 必须是 clinicaltrials、openfda、sec-filings、sec-companyfacts 或 fda-news"
+        )
+
     create_schema()
-    query = {
-        key: value
-        for key, value in {
-            "condition": condition,
-            "intervention": intervention,
-            "page_size": page_size,
-        }.items()
-        if value is not None
-    }
     with session_scope() as session:
+        before_jobs = set(session.scalars(select(ProcessingJob.id)).all())
         report = IngestionService(
             session,
             LocalObjectStore(get_settings().object_store_root),
-        ).ingest(ClinicalTrialsGovAdapter(), query, max_pages=max_pages)
-        print_json(report.__dict__)
+        ).ingest(adapter, query, max_pages=max_pages)
+        session.flush()
+        pipeline_results = []
+        if run_pipeline:
+            current_jobs = set(session.scalars(select(ProcessingJob.id)).all())
+            for job_id in sorted(current_jobs - before_jobs):
+                pipeline_results.append(PipelineRunner(session).run(job_id))
+        print_json({"source": source, "ingestion": report.__dict__, "pipeline": pipeline_results})
 
 
 @ingest_app.command("manifest")
@@ -128,7 +373,7 @@ def pipeline_run(document_id: str) -> None:
             document_version_id=version.id,
             pipeline_step="full_pipeline",
             input_hash=version.content_hash,
-            component_version="0.1.0-cli",
+            component_version="0.2.0-cli",
         )
         result = PipelineRunner(session).run(job.id)
         print_json(result)

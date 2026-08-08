@@ -33,12 +33,22 @@ Copy-Item .env.example .env
 至少修改：
 
 - `INTERNAL_API_KEY`：长随机值；
-- `HTTP_USER_AGENT`：填写真实项目名称和联系邮箱；
+- `PROJECT_CONTACT_EMAIL`：团队真实可联系邮箱，SEC 自动访问必须；
+- `OPENFDA_API_KEY`：可选，批量使用 openFDA 时建议填写；
 - `HF_TOKEN`：仅在所选模型确实需要时填写。
 
 仓库中的数据库口令只适合本地开发。部署到共享环境前，必须同时修改 `compose.yaml` 中的服务端口令和 `.env` 中的连接 URL 或客户端口令，确保两侧一致。例如修改 `NEO4J_PASSWORD` 时，也要同步修改 `NEO4J_AUTH`。
 
 不要提交 `.env`。
+
+检查已登记来源和联网状态：
+
+~~~powershell
+.venv\Scripts\datactl.exe source list
+.venv\Scripts\datactl.exe source doctor --live
+~~~
+
+来源依据、API 限制和配置项见[权威数据源配置与接入说明](authoritative_sources.md)。
 
 ### 2.2 服务组合
 
@@ -108,6 +118,12 @@ ClinicalTrials.gov 官方 API 增量同步：
 docker compose --profile core exec api datactl source sync clinicaltrials --condition oncology --page-size 100 --max-pages 1
 ~~~
 
+openFDA 药品标签小批量同步：
+
+~~~powershell
+docker compose --profile core exec api datactl source sync openfda --dataset label --search "openfda.generic_name:pembrolizumab" --page-size 10 --max-pages 1
+~~~
+
 也可按清单导入中国药物临床试验、CDE/NMPA 文件和临床结果附件：
 
 ~~~powershell
@@ -120,6 +136,20 @@ ClinicalTrials.gov 原始 JSON 会完整保存；规范化字段不能代替原�
 
 ### 4.3 财务报告
 
+SEC CompanyFacts 官方 JSON：
+
+~~~powershell
+docker compose --profile core exec api datactl source sync sec-companyfacts --cik 0000310158
+~~~
+
+SEC 官方申报正文：
+
+~~~powershell
+docker compose --profile core exec api datactl source sync sec-filings --cik 0000310158 --forms "10-K,10-Q,8-K" --page-size 3 --max-pages 1
+~~~
+
+中国内地和香港公告使用官方 URL 清单：
+
 ~~~powershell
 docker compose --profile core exec api datactl ingest manifest manifests/examples/financial_reports.csv --source-type financial_reports
 ~~~
@@ -127,6 +157,14 @@ docker compose --profile core exec api datactl ingest manifest manifests/example
 优先选择交易所、巨潮资讯、HKEX 或公司 IR 的 XBRL/XML、XLSX；PDF 作为证据或降级来源。报告期、发布日期、币种、单位、合并范围、审计和重述状态必须分开保存。
 
 ### 4.4 新闻
+
+FDA 官方 RSS：
+
+~~~powershell
+docker compose --profile core exec api datactl source sync fda-news --feed drugs --page-size 3
+~~~
+
+其他官方新闻使用清单：
 
 ~~~powershell
 docker compose --profile core exec api datactl ingest manifest manifests/examples/news.csv --source-type news
@@ -141,6 +179,14 @@ docker compose --profile core exec api datactl ingest manifest manifests/example
 ~~~
 
 可导入官方文字稿、投资者关系活动记录、演示材料和已授权 MP3/WAV/MP4。说话人身份必须来自官方参与名单、主持人介绍或人工确认。
+
+### 4.6 一键真实来源演示
+
+~~~powershell
+.venv\Scripts\datactl.exe source demo
+~~~
+
+该命令用隔离 SQLite 数据库下载 ClinicalTrials.gov、openFDA、SEC CompanyFacts 和 FDA RSS 各一条，并立即执行解析、抽取和清洗。操作与结果解释见[权威数据源调试与演示](authoritative_source_demo.md)。
 
 ## 5. 观察流水线
 

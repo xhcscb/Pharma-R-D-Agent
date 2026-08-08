@@ -7,8 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import httpx
-
+from pharma_data.config import get_settings
+from pharma_data.connectors.http_client import authoritative_get
 from pharma_data.contracts import (
     AccessClass,
     DocumentType,
@@ -111,9 +111,12 @@ class ManifestSourceAdapter(SourceAdapter):
     def _metadata(self, row: dict[str, Any]) -> dict[str, Any]:
         metadata = row.get("metadata_json")
         if isinstance(metadata, str) and metadata.strip():
-            parsed = json.loads(metadata)
+            loaded = json.loads(metadata)
+            if not isinstance(loaded, dict):
+                raise ValueError("metadata_json 必须是 JSON 对象")
+            parsed: dict[str, Any] = dict(loaded)
         elif isinstance(metadata, dict):
-            parsed = metadata
+            parsed = dict(metadata)
         else:
             parsed = {}
         excluded = {
@@ -140,7 +143,8 @@ class ManifestSourceAdapter(SourceAdapter):
 
     def fetch(self, record: SourceRecordEnvelope) -> list[FetchResult]:
         local_path = record.raw_metadata.get("_local_path")
-        content_url = record.raw_metadata.get("_content_url")
+        content_url_value = record.raw_metadata.get("_content_url")
+        content_url = str(content_url_value) if content_url_value else None
         if local_path:
             path = Path(local_path)
             if not path.is_file():
@@ -156,12 +160,13 @@ class ManifestSourceAdapter(SourceAdapter):
                 )
             ]
         if content_url:
-            with httpx.Client(follow_redirects=True, timeout=60) as client:
-                response = client.get(content_url)
-                response.raise_for_status()
-            media_type = response.headers.get("content-type", "").split(";")[0]
-            media_type = media_type or mimetypes.guess_type(content_url)[0]
-            media_type = media_type or "application/octet-stream"
+            response = authoritative_get(
+                content_url,
+                headers={"User-Agent": get_settings().http_user_agent},
+            )
+            header_media_type = response.headers.get("content-type", "").split(";")[0]
+            guessed_media_type = mimetypes.guess_type(content_url)[0]
+            media_type = header_media_type or guessed_media_type or "application/octet-stream"
             self._check_media_type(media_type)
             return [
                 FetchResult(

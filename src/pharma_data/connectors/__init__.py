@@ -4,10 +4,15 @@ from pharma_data.connectors.clinical import (
     ChinaDrugTrialsManifestAdapter,
     ClinicalDocumentAdapter,
     ClinicalTrialsGovAdapter,
+    OpenFdaDrugAdapter,
 )
 from pharma_data.connectors.earnings_calls import EarningsCallAdapter
-from pharma_data.connectors.financial_reports import FinancialReportAdapter
-from pharma_data.connectors.news import NewsAdapter
+from pharma_data.connectors.financial_reports import (
+    FinancialReportAdapter,
+    SecCompanyFactsAdapter,
+    SecEdgarFilingsAdapter,
+)
+from pharma_data.connectors.news import FdaNewsAdapter, NewsAdapter
 from pharma_data.connectors.research_reports import ResearchReportManifestAdapter
 
 __all__ = [
@@ -16,9 +21,13 @@ __all__ = [
     "ClinicalDocumentAdapter",
     "ClinicalTrialsGovAdapter",
     "EarningsCallAdapter",
+    "FdaNewsAdapter",
     "FetchResult",
     "FinancialReportAdapter",
     "NewsAdapter",
+    "OpenFdaDrugAdapter",
     "ResearchReportManifestAdapter",
+    "SecCompanyFactsAdapter",
+    "SecEdgarFilingsAdapter",
     "SourceAdapter",
 ]

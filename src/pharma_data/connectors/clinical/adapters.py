@@ -2,10 +2,9 @@ import json
 from datetime import datetime
 from typing import Any
 
-import httpx
-
 from pharma_data.config import get_settings
 from pharma_data.connectors.base import FetchResult, ManifestSourceAdapter, SourceAdapter
+from pharma_data.connectors.http_client import authoritative_get
 from pharma_data.contracts import (
     AccessClass,
     DocumentType,
@@ -20,6 +19,7 @@ class ClinicalTrialsGovAdapter(SourceAdapter):
     adapter_name = "ClinicalTrialsGovAdapter"
     authority_tier = "A1"
     base_url = "https://clinicaltrials.gov"
+    terms_url = "https://clinicaltrials.gov/about-site/terms-conditions"
     default_license_status = LicenseStatus.PUBLIC
 
     def discover(self, query: dict[str, Any], cursor: str | None = None) -> SourceRecordPage:
@@ -38,14 +38,12 @@ class ClinicalTrialsGovAdapter(SourceAdapter):
             params["filter.overallStatus"] = query["overall_status"]
         if cursor:
             params["pageToken"] = cursor
-        with httpx.Client(
-            base_url=settings.clinicaltrials_base_url,
-            headers={"User-Agent": settings.http_user_agent},
-            timeout=60,
-        ) as client:
-            response = client.get("/studies", params=params)
-            response.raise_for_status()
-            payload = response.json()
+        response = authoritative_get(
+            f"{settings.clinicaltrials_base_url.rstrip('/')}/studies",
+            params=params,
+            headers={"User-Agent": settings.http_user_agent, "Accept": "application/json"},
+        )
+        payload = response.json()
 
         records: list[SourceRecordEnvelope] = []
         for study in payload.get("studies", []):

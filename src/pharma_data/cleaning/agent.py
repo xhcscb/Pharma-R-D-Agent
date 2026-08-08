@@ -2,7 +2,7 @@ from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from dateutil import parser as date_parser
+from dateutil import parser as date_parser  # type: ignore[import-untyped]
 
 from pharma_data.contracts import (
     AssertionCandidate,
@@ -11,6 +11,7 @@ from pharma_data.contracts import (
     ConflictType,
     EntityMention,
     QualityLevel,
+    RelationType,
 )
 from pharma_data.utils.hashing import stable_hash, stable_uuid
 from pharma_data.utils.text import normalize_alias, normalize_text
@@ -18,7 +19,7 @@ from pharma_data.utils.text import normalize_alias, normalize_text
 
 class DataCleanAgent:
     name = "DataClean"
-    version = "0.1.0"
+    version = "0.2.0"
 
     def clean(
         self,
@@ -147,6 +148,8 @@ class DataCleanAgent:
     def _detect_conflicts(self, assertions: list[AssertionCandidate]) -> list[ConflictRecord]:
         groups: dict[tuple[str, str], list[AssertionCandidate]] = defaultdict(list)
         for assertion in assertions:
+            if assertion.predicate not in {RelationType.HAS_STAGE, RelationType.REPORTS}:
+                continue
             groups[(assertion.subject_mention_id, assertion.predicate.value)].append(assertion)
 
         conflicts: list[ConflictRecord] = []
@@ -209,4 +212,4 @@ class DataCleanAgent:
 
     @staticmethod
     def normalize_date(value: str) -> str:
-        return date_parser.parse(value).isoformat()
+        return str(date_parser.parse(value).isoformat())

@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from pharma_data.connectors.base import SourceAdapter
 from pharma_data.contracts import LicenseStatus, PipelineStatus
+from pharma_data.storage.canonical.models import ProcessingJob
 from pharma_data.storage.canonical.repository import CanonicalRepository
 from pharma_data.storage.object_store import LocalObjectStore
 
@@ -31,6 +33,7 @@ class IngestionService:
         max_pages: int | None = None,
     ) -> IngestionReport:
         report = IngestionReport()
+        known_job_ids = set(self.repository.session.scalars(select(ProcessingJob.id)).all())
         source = self.repository.ensure_source(
             name=adapter.source_name,
             adapter_name=adapter.adapter_name,
@@ -84,8 +87,9 @@ class IngestionService:
                         input_hash=version.content_hash,
                         payload={"artifact_id": artifact.id},
                     )
-                    if job.attempts == 0:
+                    if job.id not in known_job_ids:
                         report.jobs_enqueued += 1
+                        known_job_ids.add(job.id)
             cursor = page.next_cursor
             if not cursor or (max_pages is not None and page_count >= max_pages):
                 break

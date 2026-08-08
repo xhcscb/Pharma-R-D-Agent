@@ -84,7 +84,7 @@ RULES = [
 
 class RelationExtractAgent:
     name = "RelationExtract"
-    version = "0.1.0"
+    version = "0.2.0"
 
     def extract(
         self, document: ParsedDocument, mentions: list[EntityMention]
@@ -117,6 +117,12 @@ class RelationExtractAgent:
                 ]
                 for subject in subjects:
                     for obj in objects:
+                        local_context = self._local_context(text, subject, obj)
+                        if not any(
+                            keyword.casefold() in local_context.casefold()
+                            for keyword in rule.keywords
+                        ):
+                            continue
                         key = (
                             subject.mention_id,
                             rule.predicate.value,
@@ -135,7 +141,7 @@ class RelationExtractAgent:
                                 evidence_utterance_id=locator
                                 if locator in utterance_text
                                 else None,
-                                evidence_text=text,
+                                evidence_text=local_context,
                                 extraction_method=f"schema_rule:{rule.predicate.value}",
                                 confidence=min(
                                     rule.confidence,
@@ -175,6 +181,22 @@ class RelationExtractAgent:
                     )
         assertions.extend(self._numeric_assertions(grouped, element_text, utterance_text))
         return assertions
+
+    @staticmethod
+    def _local_context(
+        text: str,
+        subject: EntityMention,
+        obj: EntityMention,
+        padding: int = 240,
+        max_span: int = 800,
+    ) -> str:
+        if subject.char_start is None or obj.char_start is None:
+            return text[: max_span + 2 * padding]
+        left = min(subject.char_start, obj.char_start)
+        right = max(subject.char_end or subject.char_start, obj.char_end or obj.char_start)
+        if right - left > max_span:
+            return ""
+        return text[max(0, left - padding) : min(len(text), right + padding)]
 
     @staticmethod
     def _numeric_assertions(

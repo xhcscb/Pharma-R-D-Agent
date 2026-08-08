@@ -11,7 +11,7 @@ from pharma_data.utils.hashing import stable_uuid
 
 class EntityExtractAgent:
     name = "EntityExtract"
-    version = "0.1.0"
+    version = "0.2.0"
 
     def __init__(self, extractors: list[MentionExtractor] | None = None):
         self.extractors = extractors or [DictionaryExtractor(), PatternExtractor()]
@@ -94,7 +94,16 @@ class EntityExtractAgent:
                 item for item in local_mentions if item.entity_type == EntityType.INDICATION
             ]
             for drug in drugs:
-                for indication in indications:
+                nearby = sorted(
+                    (
+                        (EntityExtractAgent._mention_gap(drug, indication), indication)
+                        for indication in indications
+                    ),
+                    key=lambda item: item[0],
+                )
+                if not nearby or nearby[0][0] > 240:
+                    continue
+                for _gap, indication in nearby[:1]:
                     starts = [
                         value
                         for value in (drug.char_start, indication.char_start)
@@ -127,3 +136,13 @@ class EntityExtractAgent:
                         )
                     )
         return programs
+
+    @staticmethod
+    def _mention_gap(left: EntityMention, right: EntityMention) -> int:
+        if left.char_start is None or right.char_start is None:
+            return 10**9
+        if (left.char_end or left.char_start) < right.char_start:
+            return right.char_start - (left.char_end or left.char_start)
+        if (right.char_end or right.char_start) < left.char_start:
+            return left.char_start - (right.char_end or right.char_start)
+        return 0

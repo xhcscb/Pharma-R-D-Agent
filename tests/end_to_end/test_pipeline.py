@@ -50,6 +50,7 @@ def test_public_news_runs_end_to_end_and_is_idempotent(db_session, tmp_path) -> 
 
     assert first.versions_created == 1
     assert second.versions_created == 0
+    assert second.jobs_enqueued == 0
 
     job = db_session.scalar(select(ProcessingJob))
     result = PipelineRunner(db_session).run(job.id)

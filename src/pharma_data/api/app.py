@@ -67,7 +67,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Pharma Analyst Data Layer",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 app.include_router(GraphQLRouter(graphql_schema), prefix="/graphql")
@@ -75,7 +75,7 @@ app.include_router(GraphQLRouter(graphql_schema), prefix="/graphql")
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.2.0"}
 
 
 @app.post("/v1/ingestions")
@@ -126,7 +126,7 @@ def reprocess_document(
         pipeline_step=request.pipeline_step,
         input_hash=version.content_hash,
         configuration=request.configuration,
-        component_version=f"0.1.0-reprocess-{len(request.configuration)}",
+        component_version=f"0.2.0-reprocess-{len(request.configuration)}",
     )
     return {"job_id": job.id, "status": job.status}
 

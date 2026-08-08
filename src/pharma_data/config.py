@@ -20,7 +20,13 @@ class Settings(BaseSettings):
     internal_api_key: str | None = None
 
     clinicaltrials_base_url: str = "https://clinicaltrials.gov/api/v2"
-    http_user_agent: str = "pharma-analyst-data/0.1 research-contact@example.invalid"
+    openfda_base_url: str = "https://api.fda.gov"
+    openfda_api_key: str | None = None
+    sec_data_base_url: str = "https://data.sec.gov"
+    sec_archives_base_url: str = "https://www.sec.gov/Archives/edgar/data"
+    project_contact_email: str | None = None
+    sec_user_agent: str | None = None
+    http_user_agent: str = "pharma-analyst-data/0.2"
     http_rate_limit_per_second: float = Field(default=1.0, gt=0)
 
     neo4j_uri: str = "bolt://localhost:7687"
@@ -40,6 +46,17 @@ class Settings(BaseSettings):
             Path(self.database_url.removeprefix("sqlite:///")).parent.mkdir(
                 parents=True, exist_ok=True
             )
+
+    def identified_sec_user_agent(self) -> str:
+        """返回 SEC 自动访问政策要求的可联系访问标识。"""
+        if self.sec_user_agent and "@" in self.sec_user_agent:
+            return self.sec_user_agent
+        if self.project_contact_email and "@" in self.project_contact_email:
+            return f"pharma-analyst-data/0.2 ({self.project_contact_email})"
+        raise ValueError(
+            "SEC EDGAR 要求可联系的访问标识。请设置 PROJECT_CONTACT_EMAIL，"
+            "或设置包含联系邮箱的 SEC_USER_AGENT。"
+        )
 
 
 @lru_cache

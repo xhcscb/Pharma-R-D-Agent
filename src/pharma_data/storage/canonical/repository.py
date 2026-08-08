@@ -192,7 +192,7 @@ class CanonicalRepository:
         pipeline_step: str,
         input_hash: str,
         schema_version: str = "1.0",
-        component_version: str = "0.1.0",
+        component_version: str = "0.2.0",
         configuration: dict[str, Any] | None = None,
         payload: dict[str, Any] | None = None,
     ) -> ProcessingJob:

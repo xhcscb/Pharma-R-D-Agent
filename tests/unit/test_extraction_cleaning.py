@@ -87,3 +87,46 @@ def test_conflicting_values_are_preserved() -> None:
 
     assert len(result.assertions) == 2
     assert len(result.conflicts) == 1
+
+
+def test_multivalued_relation_is_not_treated_as_conflict() -> None:
+    from pharma_data.contracts import AssertionCandidate, EntityMention, EntityType
+
+    drug = EntityMention(
+        entity_type=EntityType.DRUG,
+        original_text="Drug X",
+        normalized_name="Drug X",
+        extraction_method="test",
+        confidence=1.0,
+    )
+    indications = [
+        EntityMention(
+            entity_type=EntityType.INDICATION,
+            original_text=name,
+            normalized_name=name,
+            extraction_method="test",
+            confidence=1.0,
+        )
+        for name in ("Indication A", "Indication B")
+    ]
+    assertions = [
+        AssertionCandidate(
+            subject_mention_id=drug.mention_id,
+            predicate=RelationType.TREATS,
+            object_mention_id=indication.mention_id,
+            evidence_element_id=f"e{index}",
+            evidence_text=f"Drug X treats {indication.normalized_name}",
+            extraction_method="test",
+            confidence=0.9,
+        )
+        for index, indication in enumerate(indications)
+    ]
+
+    result = DataCleanAgent().clean(
+        document_version_id="version",
+        mentions=[drug, *indications],
+        assertions=assertions,
+    )
+
+    assert len(result.assertions) == 2
+    assert result.conflicts == []
