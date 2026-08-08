@@ -67,6 +67,26 @@ docker compose --profile core exec api datactl eval all
 
 ## 5. 任务失败恢复
 
+### 5.1 本机无法解析 `postgres`
+
+若出现 `failed to resolve host 'postgres'` 或 `getaddrinfo failed`，说明 Windows 本机 CLI 使用了 Docker 内部地址。先运行：
+
+~~~powershell
+.venv\Scripts\datactl.exe db doctor
+~~~
+
+本机最简配置应为：
+
+~~~dotenv
+DATABASE_URL=sqlite:///./data/runtime/pharma.db
+OBJECT_STORE_ROOT=./data/objects
+PUBLIC_EXPORT_ROOT=./data/exports
+~~~
+
+如果本机需要连接 Compose 中的 PostgreSQL，使用 `localhost:5432`；只有 `docker compose exec api ...` 等容器内命令才能使用 `postgres:5432`。
+
+### 5.2 流水线任务失败
+
 查询失败任务：
 
 ~~~powershell

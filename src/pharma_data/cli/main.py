@@ -6,6 +6,9 @@ from typing import Any
 
 import typer
 from sqlalchemy import select
+from sqlalchemy import text as sql_text
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import OperationalError
 
 from pharma_data.config import get_settings
 from pharma_data.connectors import (
@@ -91,8 +94,55 @@ def print_json(payload: Any) -> None:
 
 @db_app.command("migrate")
 def db_migrate() -> None:
-    create_schema()
-    typer.echo("Database schema is ready.")
+    try:
+        create_schema()
+    except OperationalError as exc:
+        settings = get_settings()
+        url = make_url(settings.database_url)
+        print_json(
+            {
+                "status": "FAILED",
+                "database_driver": url.drivername,
+                "database_host": url.host,
+                "hint": _database_error_hint(url.host),
+                "error": str(exc.orig),
+            }
+        )
+        raise typer.Exit(1) from exc
+    typer.echo("数据库结构已就绪。")
+
+
+@db_app.command("doctor")
+def db_doctor() -> None:
+    settings = get_settings()
+    url = make_url(settings.database_url)
+    result: dict[str, Any] = {
+        "database_driver": url.drivername,
+        "database_host": url.host or "local-file",
+        "database_port": url.port,
+    }
+    try:
+        with get_engine(settings.database_url).connect() as connection:
+            connection.execute(sql_text("SELECT 1"))
+        result["status"] = "OK"
+    except OperationalError as exc:
+        result.update(
+            status="FAILED",
+            hint=_database_error_hint(url.host),
+            error=str(exc.orig),
+        )
+    print_json(result)
+    if result["status"] != "OK":
+        raise typer.Exit(1)
+
+
+def _database_error_hint(host: str | None) -> str:
+    if host in {"postgres", "timescaledb", "neo4j", "milvus", "elasticsearch"}:
+        return (
+            "当前地址是 Docker 内部服务名，不能从 Windows 本机解析。"
+            "本机 CLI 请使用 SQLite 或 localhost；容器内请使用 docker compose exec。"
+        )
+    return "请检查数据库服务是否启动、端口是否正确以及连接配置是否可达。"
 
 
 @source_app.command("list")

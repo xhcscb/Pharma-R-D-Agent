@@ -5,6 +5,14 @@ x-app: &app
   env_file:
     - path: .env
       required: false
+  environment:
+    DATABASE_URL: ${CONTAINER_DATABASE_URL:-postgresql+psycopg://pharma:pharma@postgres:5432/pharma}
+    OBJECT_STORE_ROOT: ${CONTAINER_OBJECT_STORE_ROOT:-/app/data/objects}
+    PUBLIC_EXPORT_ROOT: ${CONTAINER_PUBLIC_EXPORT_ROOT:-/app/data/exports}
+    NEO4J_URI: ${CONTAINER_NEO4J_URI:-bolt://neo4j:7687}
+    MILVUS_URI: ${CONTAINER_MILVUS_URI:-http://milvus:19530}
+    TIMESCALE_URL: ${CONTAINER_TIMESCALE_URL:-postgresql+psycopg://pharma:pharma@timescaledb:5432/pharma_timeseries}
+    ELASTICSEARCH_URL: ${CONTAINER_ELASTICSEARCH_URL:-http://elasticsearch:9200}
   volumes:
     - ./data:/app/data
     - ./manifests:/app/manifests:ro

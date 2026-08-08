@@ -24,9 +24,23 @@ Copy-Item .env.example .env
 
 `.env` 已被忽略，不要提交。
 
+默认配置同时支持两种运行方式：
+
+- Windows 本机运行 `.venv\Scripts\datactl.exe`：使用 `DATABASE_URL=sqlite:///./data/runtime/pharma.db`；
+- Docker 运行：Compose 自动使用 `CONTAINER_DATABASE_URL`，容器内数据库主机为 `postgres`。
+
+不要把本机 `DATABASE_URL` 写成 `@postgres:5432`。`postgres` 只能在 Compose 网络内部解析；本机若要连接容器 PostgreSQL，应使用 `@localhost:5432`。
+
 本地快速验证可暂时使用 Compose 示例口令。共享部署前必须同时修改 `compose.yaml` 的服务端口令和 `.env` 的连接口令，不能只改一侧。
 
 ## 3. 检查并启动核心服务
+
+先检查本机 CLI 数据库：
+
+~~~powershell
+.venv\Scripts\datactl.exe db doctor
+.venv\Scripts\datactl.exe db migrate
+~~~
 
 ~~~powershell
 docker compose --profile core config --quiet

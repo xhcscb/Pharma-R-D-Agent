@@ -41,6 +41,26 @@ Copy-Item .env.example .env
 
 不要提交 `.env`。
 
+### 2.2 本机地址与容器地址
+
+同一服务在两种运行环境中使用不同地址：
+
+| 服务 | Windows 本机 | Compose 容器内部 |
+|---|---|---|
+| 事实库 | `sqlite:///./data/runtime/pharma.db`，或 `localhost:5432` | `postgres:5432` |
+| Neo4j | `localhost:7687` | `neo4j:7687` |
+| Milvus | `localhost:19530` | `milvus:19530` |
+| TimescaleDB | `localhost:5433` | `timescaledb:5432` |
+| Elasticsearch | `localhost:9200` | `elasticsearch:9200` |
+
+`.env` 中的普通变量供本机 CLI 使用；`CONTAINER_*` 变量由 Compose 注入容器。不要让本机 CLI 使用 `postgres`、`neo4j` 等 Compose 服务名。
+
+诊断本机数据库配置：
+
+~~~powershell
+.venv\Scripts\datactl.exe db doctor
+~~~
+
 检查已登记来源和联网状态：
 
 ~~~powershell
@@ -50,7 +70,7 @@ Copy-Item .env.example .env
 
 来源依据、API 限制和配置项见[权威数据源配置与接入说明](authoritative_sources.md)。
 
-### 2.2 服务组合
+### 2.3 服务组合
 
 | Profile | 服务 | 用途 |
 |---|---|---|
