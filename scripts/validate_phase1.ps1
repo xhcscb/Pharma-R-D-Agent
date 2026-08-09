@@ -49,7 +49,9 @@ function Assert-CsvHeader {
 $requiredFiles = @(
     'README.md',
     'CONTRIBUTING.md',
+    'docs/README.md',
     'docs/research/phase1_literature_research_plan.md',
+    'research/README.md',
     'research/protocol.md',
     'research/search/query_catalog.md',
     'research/search/search_log.csv',
@@ -59,10 +61,13 @@ $requiredFiles = @(
     'research/screening/prisma_flow.csv',
     'research/evidence/literature_matrix.csv',
     'research/evidence/metric_candidates.csv',
+    'research/evidence/baseline_candidates.csv',
+    'research/evidence/error_taxonomy.csv',
     'research/evidence/cards/_template.md',
     'research/references/references.bib',
     'research/synthesis/thematic_synthesis.md',
     'research/synthesis/research_gaps_and_hypotheses.md',
+    'research/synthesis/implementation_evidence_map.md',
     'research/decisions/decision_register.md',
     'research/phase2/phase2_data_requirements.md'
 )
@@ -79,6 +84,14 @@ if (-not $pythonCommand) {
     & $pythonCommand.Source $csvShapeValidator
     if ($LASTEXITCODE -ne 0) {
         Add-ValidationError 'CSV shape validation failed.'
+    }
+}
+
+$documentationValidator = Join-Path $repoRoot 'scripts/validate_docs.py'
+if ($pythonCommand -and (Test-Path -LiteralPath $documentationValidator -PathType Leaf)) {
+    & $pythonCommand.Source $documentationValidator
+    if ($LASTEXITCODE -ne 0) {
+        Add-ValidationError 'Documentation link validation failed.'
     }
 }
 
@@ -184,11 +197,6 @@ if (Test-Path -LiteralPath $matrixPath) {
 $trackedPdf = @(& git -C $repoRoot ls-files '*.pdf' 2>$null)
 if ($trackedPdf.Count -gt 0) {
     Add-ValidationError "PDF files are tracked by Git: $($trackedPdf -join ', ')"
-}
-
-$currentBranch = (& git -C $repoRoot branch --show-current 2>$null)
-if ($currentBranch -ne 'research/phase1-literature') {
-    $warnings.Add("Current branch is '$currentBranch'; expected 'research/phase1-literature' during phase 1.")
 }
 
 Write-Host "Phase 1 validation summary"

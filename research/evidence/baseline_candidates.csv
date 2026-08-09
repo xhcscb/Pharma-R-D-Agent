@@ -1,0 +1,11 @@
+baseline_id,component,task,baseline_name,baseline_type,description,configuration_to_record,source_literature_ids,required_gold,status,owner,notes
+BL-PDF-001,PDF Parser,原生PDF文本解析,PyMuPDF原生文本,tool,"仅使用PDF内嵌文本和坐标，不使用OCR或版面模型","PyMuPDF版本;排序方式;页眉页脚规则",,"逐页Gold文本;阅读顺序",evidence_pending,成员3,"作为混合解析器的最低复杂度基线"
+BL-PDF-002,PDF Parser,扫描PDF解析,单一OCR,tool,"所有扫描页使用同一OCR配置，不使用版面候选选择","OCR版本;语言包;分辨率;阈值",,"逐页Gold文本;bbox;表格区域",evidence_pending,成员3,"与原生文本和混合选择器分开报告"
+BL-ENT-001,Data Layer,实体抽取,词典与规则,rule,"仅使用已审核别名词典、编号和格式规则","词典版本;规则版本;最长匹配策略",,"实体跨度;类型;规范ID",evidence_pending,成员3,"与NER模型及融合方案比较"
+BL-REL-001,Data Layer,关系抽取,同句模板规则,rule,"只在同一句或同一表格行内按已定义模板抽取关系","规则版本;允许距离;否定词表",,"实体链接;关系方向;限定条件;证据",evidence_pending,成员3,"暴露跨句和复杂表格关系增益"
+BL-RET-001,Metric Ontology,检索,纯向量检索,retrieval,"不使用图谱和元数据过滤的向量Top-k检索","嵌入模型;版本;维度;k;切块",LIT-2024-002,"查询;相关证据;权限",evidence_pending,成员4,"需全文复核GraphRAG及补充检索证据"
+BL-RET-002,Metric Ontology,检索,向量加元数据过滤,retrieval,"先按公司、时间、来源、权限过滤，再做向量Top-k","过滤字段;嵌入模型;k;切块",,"查询;相关证据;元数据",evidence_pending,成员4,"分层图必须超过此强基线"
+BL-RET-003,Metric Ontology,检索,扁平知识图谱,retrieval,"使用实体关系但不做社区或层级结构","图版本;跳数;关系类型;剪枝规则",LIT-2024-002,"实体;关系;查询;相关证据",evidence_pending,成员4,"用于分离图结构和层级结构的贡献"
+BL-CMP-001,Compare Agent,多实体比较,长上下文单次提示,generation,"将同一检索结果一次性提供给模型，不使用Metric Ontology或专用比较流程","模型;提示词;温度;上下文;随机种子",LIT-2025-002;LIT-2025-003,"对象;维度;时间;数值;证据",evidence_pending,成员5,"与Compare DSL和本体对齐机制比较"
+BL-SUM-001,Summarize Agent,多文档摘要,普通RAG摘要,generation,"检索后直接摘要，不构建Claim Graph或冲突簇","模型;提示词;检索器;k;温度",LIT-2025-001;LIT-2023-002,"原子主张;引用;冲突簇",evidence_pending,成员5,"与Evidence Gate和Claim Graph消融比较"
+BL-AGT-001,Agent Orchestration,投研任务执行,单Agent工具调用,agent,"单个Agent完成规划、检索、比较和摘要，不进行多Agent分工","模型;工具集;提示词;预算;重试",LIT-2024-004;LIT-2025-004,"任务终态;里程碑;工具轨迹;成本",evidence_pending,成员5,"与多Agent协作拓扑比较"

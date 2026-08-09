@@ -1,0 +1,14 @@
+error_id,component,category,definition,example_boundary,gold_fields,severity,disposition,status,owner
+ERR-PDF-001,PDF Parser,text_omission,"原文存在的有效文本未被解析","页眉页脚按标注规则排除后才计错","page_number;text;char_span",medium,revise,evidence_pending,成员3
+ERR-PDF-002,PDF Parser,reading_order,"元素内容正确但阅读顺序错误","双栏串行、脚注插入正文和跨页续表分别标记","element_id;reading_order;bbox",high,revise,evidence_pending,成员3
+ERR-PDF-003,PDF Parser,table_structure,"行列、合并单元格、多级表头或跨页连接错误","仅样式差异不计结构错误","table_html;cell_reference;header_level",high,needs_review,evidence_pending,成员3
+ERR-ENT-001,Data Layer,entity_boundary,"实体字符边界缺失、多取或跨越错误","别名后缀是否属于实体按标注指南处理","char_start;char_end;entity_type",medium,revise,evidence_pending,成员3
+ERR-ENT-002,Data Layer,entity_linking,"提及被链接到错误规范实体或错误合并","同名公司、盐型、剂型、靶点与通路为高风险边界","mention_id;canonical_entity_id;context",critical,needs_review,evidence_pending,成员3
+ERR-REL-001,Data Layer,relation_direction,"主体和客体正确但关系方向或谓词错误","对称关系必须在Schema中明确声明","subject_id;predicate;object_id",high,revise,evidence_pending,成员3
+ERR-REL-002,Data Layer,qualifier_loss,"关系存在但时间、地区、适应症、阶段或口径缺失","缺少限定条件可能改变投研含义时计高风险","qualifiers;valid_time;as_of_date",critical,needs_review,evidence_pending,成员3
+ERR-EVD-001,Evidence Gate,unsupported_evidence,"证据存在但不支持对应主张","仅同文档出现不等于蕴含主张","assertion_id;evidence_id;support_label",critical,abstain,evidence_pending,成员5
+ERR-TIME-001,Data Layer,temporal_misalignment,"把发布时间、事件时间、报告期或有效期错误混用","同日但字段语义不同仍计错","published_at;event_time;period_start;period_end",critical,flag_conflict,evidence_pending,成员2
+ERR-NUM-001,Data Layer,unit_or_scale,"数值正确但币种、单位、数量级或合并范围错误","换算值必须保留原值和计算链","raw_value;numeric_value;unit;currency;scale",critical,needs_review,evidence_pending,成员2
+ERR-CON-001,Evidence Gate,conflict_suppression,"存在来源分歧却只保留或输出一个值","时间或范围差异应分类而非直接当真冲突","conflict_type;assertion_ids;resolution_status",critical,flag_conflict,evidence_pending,成员5
+ERR-GOV-001,Data Layer,permission_leakage,"受限内容出现在无权查询或公开快照中","元数据允许公开时仍不得泄露受限正文","license_status;access_class;snapshot_id",critical,quarantine,evidence_pending,成员1
+ERR-AGT-001,Agent Orchestration,invalid_tool_use,"工具调用无效、重复或与当前子任务无关","必要重试与无效重复按错误恢复规则区分","tool_name;arguments;status;milestone_id",medium,recover,evidence_pending,成员5

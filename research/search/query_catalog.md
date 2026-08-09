@@ -1,4 +1,4 @@
-# 检索式目录 v1.0
+# 检索式目录 v1.1
 
 ## 1. 使用方法
 
@@ -10,6 +10,10 @@
 DOMAIN_FINANCE =
 (financial OR finance OR investment OR "equity research" OR "analyst report"
  OR "securities research" OR 医药投研 OR 券商研报 OR 投资研究)
+
+DOMAIN_PHARMA =
+(pharmaceutical OR biopharma OR biotechnology OR drug OR "clinical trial"
+ OR pipeline OR 医药 OR 生物医药 OR 药物 OR 临床试验 OR 研发管线)
 
 TASK_DOCUMENT =
 ("document understanding" OR "question answering" OR summarization
@@ -44,6 +48,8 @@ PDF =
 | Q-F01 | PDF解析 | `PDF AND (financial OR scientific OR report) AND (benchmark OR evaluation)` | RQ6 |
 | Q-G01 | Agent评测 | `AGENT AND (benchmark OR evaluation OR trajectory OR collaboration OR recovery)` | RQ7 |
 
+各主题至少补做一条与医药迁移直接相关的查询。B—F主题推荐在标准式后追加 `AND DOMAIN_PHARMA`，并将加限制和不加限制的结果分别记录，避免过早收窄而漏掉可迁移方法。
+
 ## 4. 中文查询模板
 
 ```text
@@ -70,3 +76,37 @@ AND (评价 OR 基准 OR 协作 OR 错误恢复)
 - 每次改写查询式都创建新的 `search_id`。
 - 查询过宽时优先增加任务/评价概念块，不通过事后主观删除来伪造精度。
 - 查询过窄时先检查字段限制和同义词，再考虑扩大年份。
+
+## 6. 从模板到可复现查询
+
+`search_log.csv` 现有8行都是待执行模板，不能直接标记为完成。每位执行人必须：
+
+1. 在数据库界面确认支持的字段、布尔运算和日期过滤语法；
+2. 保存粘贴到数据库中的完整查询，而不是只写 `DOMAIN_FINANCE` 等变量名；
+3. 记录数据库或索引版本、执行日期、命中数和语言；
+4. 导出 RIS、BibTeX 或 CSV 到 Git 忽略目录，并记录文件名与 SHA-256；
+5. 在 `seed_set.csv` 填写每篇种子的实际命中来源；
+6. 修改查询时新增 `v2` 行，旧行标为 `superseded`，不得覆盖。
+
+### 数据库执行注意
+
+| 数据库 | 记录重点 | 常见风险 |
+|---|---|---|
+| ACL Anthology | 搜索词、年份、结果页或导出方式 | 页面检索能力有限，必要时结合正式元数据索引 |
+| PubMed | 完整字段标签、日期过滤和查询历史编号 | MeSH与自由词覆盖不同 |
+| Web of Science/Scopus | 检索字段、索引范围、文献类型和机构订阅状态 | 同一查询在不同订阅范围结果不同 |
+| IEEE/ACM | 元数据字段、内容类型和会议/期刊过滤 | 全文检索可能造成大量噪声 |
+| Semantic Scholar/Crossref | API或页面参数、分页和结果上限 | 适合补充元数据，不替代领域数据库 |
+| CNKI/万方 | 检索字段、同义词、学科与来源类别 | 中文分词和机构权限影响结果 |
+
+无法合法导出全文时，只保存元数据和访问状态，不使用截图或手工转录来伪装完整数据导出。
+
+## 7. 查询结果验收
+
+试检索只有同时满足以下条件才通过：
+
+- 18篇种子在声明的数据库组合中全部命中；
+- 每个RQ至少覆盖一个同行评审主来源和一个综合索引或官方规范来源；
+- 中文与英文查询均已执行；
+- 每条日志有执行人、日期、命中数、导出文件和哈希；
+- 随机抽查20条结果，主题相关性足以进入标题摘要筛选。

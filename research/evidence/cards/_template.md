@@ -2,6 +2,8 @@
 literature_id: LIT-YYYY-NNN
 citekey: replace_me
 title: ""
+version_of_record: ""
+access_status: metadata_only
 topic_cluster: []
 research_question: []
 project_component: []
@@ -34,10 +36,11 @@ claims_verified_against_full_text: false
 | 采样 | | |
 | 划分 | | |
 | 泄漏控制 | | |
+| 版本/时间截止 | | |
 
 ## 4. 方法结构
 
-待填写。
+待填写。列出输入、处理步骤、输出、关键参数、模型版本和训练/推理设置。
 
 ## 5. 对比基线
 
@@ -57,7 +60,7 @@ claims_verified_against_full_text: false
 
 ## 8. 消融、统计与误差分析
 
-待填写；没有提供也必须明确记录。
+待填写；没有提供也必须明确记录。至少区分作者报告的失败类型和本项目迁移时新增的风险。
 
 ## 9. 作者承认的局限
 
@@ -75,6 +78,10 @@ claims_verified_against_full_text: false
 
 关联 D01–D10，并区分 `support`、`challenge`、`alternative`。
 
+| 当前项目机制 | 影响类型 | 影响说明 | 需要的后续实验 |
+|---|---|---|---|
+| | support/challenge/alternative | | |
+
 ## 13. 原文定位索引
 
 | 定位ID | 页码/章节/表图 | 支撑内容 |
@@ -88,3 +95,4 @@ claims_verified_against_full_text: false
 - 分歧：
 - 裁决：
 - 完成日期：
+- 核验范围：元数据/方法/实验数字/局限/全部

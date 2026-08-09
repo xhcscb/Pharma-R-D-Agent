@@ -2,6 +2,8 @@
 
 本目录记录数据层的架构、操作、治理、接口和验收规则。所有正文使用简体中文；英文只保留在代码标识、数据库名称、协议字段和业界通用缩写中。
 
+当前状态是“工程与演示可运行，真实 Gold 质量门待完成”。数据层已支持解析元素、实体高亮、候选关系图和证据链展示，但 Candidate 结果不能直接作为投资事实。论文依据与待验证机制见[论文调研模块](../../research/README.md)。
+
 ## 按角色阅读
 
 数据管理员：
@@ -46,6 +48,8 @@
 | [api.md](api.md) | REST、GraphQL 和鉴权规则 |
 | [benchmark.md](benchmark.md) | Gold 文件结构、指标和发布阈值 |
 | [acceptance.md](acceptance.md) | 自动化覆盖、真实语料验收和版本标签条件 |
+| [known_limitations.md](known_limitations.md) | 当前未通过的 Gold、可选依赖、存储和类型检查边界 |
+| [论文调研模块](../../research/README.md) | 数据层机制对应的论文证据、评价指标和待冻结决策 |
 
 ## 安全提醒
 

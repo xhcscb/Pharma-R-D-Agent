@@ -1,60 +1,42 @@
-# 医药行业券商分析师 Agent 平台研究仓库
+# 医药行业券商分析师 Agent 平台
 
-本仓库同时包含第一阶段研究协议和可运行的数据层工程。
+本仓库包含两部分：可运行的数据层工程，以及用于冻结后续 Agent 任务、指标和实验设计的论文调研模块。生产数据范围限定为中国大陆公开或已获授权来源。
 
-## 首要入口
+## 从哪里开始
 
-研究工作：
+- 项目文档总导航：[docs/README.md](docs/README.md)
+- 论文调研执行入口：[research/README.md](research/README.md)
+- 第一阶段详细计划：[docs/research/phase1_literature_research_plan.md](docs/research/phase1_literature_research_plan.md)
+- 数据层文档入口：[docs/data_layer/README.md](docs/data_layer/README.md)
+- 数据层可视化：[docs/data_layer/visualization.md](docs/data_layer/visualization.md)
+- 团队协作规范：[CONTRIBUTING.md](CONTRIBUTING.md)
 
-- [第一阶段总计划](docs/research/phase1_literature_research_plan.md)
-- [系统映射研究协议](research/protocol.md)
-- [标准检索式](research/search/query_catalog.md)
-- [种子与锚点文献](research/search/seed_set.csv)
-- [证据矩阵](research/evidence/literature_matrix.csv)
-- [决策登记](research/decisions/decision_register.md)
-
-数据层：
-
-- [数据层文档导航](docs/data_layer/README.md)
-- [权威数据源配置](docs/data_layer/authoritative_sources.md)
-- [权威数据源演示](docs/data_layer/authoritative_source_demo.md)
-- [快速启动](docs/data_layer/quickstart.md)
-- [完整操作手册](docs/data_layer/operations.md)
-- [数据清单编写指南](docs/data_layer/manifest_guide.md)
-- [运维与恢复手册](docs/data_layer/maintenance_and_recovery.md)
-
-## 当前状态
+## 当前真实状态
 
 截至 2026-08-09：
 
-- RQ1–RQ8、纳入排除规则和质量评价量表已冻结；
-- 已建立首批种子论文元数据和阶段数据模板；
-- 数据层已实现五类受控数据接入、文档解析、实体抽取、关系抽取、清洗、复核和统一事实库；
-- 受支持的数据源已限定为中国大陆，登记 31 个政府、监管、交易所、法定披露、临床注册、公司第一方或授权来源；
-- 已提供 Neo4j、Milvus、TimescaleDB、Elasticsearch 投影，以及 REST、GraphQL、CLI、Alembic 和 Docker Compose；
-- 正式数据库检索、双人筛选、全文深读和 Gold 语料实测仍需由团队按计划执行；
-- 机器生成的论文摘要、实验数字、实体、关系和评价结论必须由成员对照原文复核。
+| 模块 | 已完成 | 尚未完成 |
+|---|---|---|
+| 论文调研 | RQ1—RQ8、协议、检索模板、18 篇种子元数据、15 篇锚点队列、证据与评测模板 | 正式检索、种子召回测试、50 篇筛选校准、双人全文筛选、40 篇深读和 D01—D10 冻结 |
+| 数据层 | 五类接入、文档解析、实体/关系抽取、清洗、复核、统一事实库、四类投影接口、REST、GraphQL、CLI 和可视化 | 真实 Gold 语料质量门、生产级模型调优、四类外部数据库的正式在线验收 |
 
-## 数据管理原则
+当前 Python 包版本为 `0.2.0`。`data-layer-v1.0.0` 和 `research-phase1-v1.0` 均未达到创建条件；通过脚手架测试或演示数据不等于完成正式验收。
 
-- 不提交未授权券商研报、付费论文、私人录音或其他受版权保护全文；
-- Git 只保存公开元数据、链接、检索协议、派生标注、论文卡片、配置和团队原创综合；
-- 论文统一使用 `LIT-YYYY-NNN` 编号；
-- 缺失值保持为空，不用未经核验的推测值填充；
-- CSV 使用 UTF-8 编码，多个标签用英文分号 `;` 分隔；
-- PostgreSQL 是唯一事实主库，其他知识存储均通过 Outbox 投影。
+## 数据层最短演示
 
-## 数据层能力
+本机使用 SQLite，不需要把数据库地址写成 `postgres`：
 
-`src/pharma_data` 提供：
+~~~powershell
+Copy-Item .env.example .env
+uv sync --extra dev
+uv run datactl db migrate
+uv run datactl source demo
+uv run uvicorn pharma_data.api.app:app --host 127.0.0.1 --port 8000
+~~~
 
-- 五类来源：已授权大陆券商研报、大陆官方临床记录、A 股财务报告、大陆官方新闻和官方/授权电话会议；
-- 文件路由：PDF、HTML、JSON、XLSX、XBRL、图片、文本、音频和视频；
-- 证据可定位的实体、关系、财务数值、冲突和复核记录；
-- PostgreSQL 统一事实库，以及只读主库事件的四类投影；
-- FastAPI REST、GraphQL、`datactl`、Alembic、Docker Compose、数据集快照和基准评测。
+打开 `http://127.0.0.1:8000/demo/data-layer`，选择“团队内部”，并填写 `.env` 中的 `INTERNAL_API_KEY`。页面可查看解析元素、实体高亮、候选关系图、证据位置和复核状态。
 
-快速启动：
+Docker 核心服务：
 
 ~~~powershell
 Copy-Item .env.example .env
@@ -63,28 +45,36 @@ docker compose --profile core exec api alembic upgrade head
 Invoke-RestMethod http://127.0.0.1:8000/health
 ~~~
 
-本地开发验证：
+本机 CLI 使用 SQLite 或 `localhost`；`postgres`、`neo4j` 等名称只在 Compose 网络内部可解析。完整说明见[快速启动](docs/data_layer/quickstart.md)。
+
+## 论文调研最短流程
+
+1. 阅读[研究模块入口](research/README.md)和[执行协议](research/protocol.md)。
+2. 按[检索式目录](research/search/query_catalog.md)执行试检索，将实际查询写入 `search_log.csv`。
+3. 种子组合召回率达到 100% 后，完成 50 篇校准并计算 Cohen's κ。
+4. 通过质量门后，才能开展正式检索、筛选、深读、综合和决策冻结。
+
+论文元数据已登记不代表全文主张已核验。只有状态达到 `full_text_verified` 的卡片才能支撑确定性研究结论。
+
+## 验证
 
 ~~~powershell
-uv sync --extra dev
-uv run alembic upgrade head
+python scripts/validate_docs.py
+./scripts/validate_phase1.ps1
 uv run pytest -q
-uv run datactl eval all
+uv run ruff check .
+uv run mypy scripts/validate_docs.py
 docker compose --profile full config --quiet
 ~~~
 
-重型 PDF/OCR、音频和机器学习依赖已锁定在 `uv.lock`，并由生产镜像安装。原始研报、录音、模型权重、数据库卷和未授权内容均保留在 Git 之外。
+`validate_phase1.ps1` 验证研究文件和数据接口，不证明 100 篇矩阵、40 篇深读等阶段数量门已经达成。全量 `mypy src` 仍有可选依赖类型存根和旧标注问题，当前只要求对本次改动模块做定向检查，详见[已知限制](docs/data_layer/known_limitations.md)。
 
-## 研究协议验证
+## 数据与版权边界
 
-在 PowerShell 中运行：
+- 生产数据只使用中国大陆权威公开来源或已获明确授权的来源；
+- 不提交未授权券商研报、付费论文、私人录音、Cookie、Token、模型权重或数据库卷；
+- `public_access` 只表示公众可访问，不等于允许公开再分发全文；
+- Git 只保存来源元数据、链接、检索日志、团队原创标注、配置和可授权内容；
+- PostgreSQL 是唯一事实主库，Neo4j、Milvus、TimescaleDB 和 Elasticsearch 只能由 Outbox 投影重建。
 
-~~~powershell
-./scripts/validate_phase1.ps1
-~~~
-
-验证脚本检查必需文件、CSV 表头、文献编号、种子与锚点数量、枚举值和受版权文件误提交风险。
-
-## 发布说明
-
-`data-layer-v1.0.0` 标签只能在自动化检查和真实 Gold 语料验收均通过后创建，不能以空基准或仅通过脚手架测试代替。详见[数据层验收说明](docs/data_layer/acceptance.md)。
+发布门详见[数据层验收说明](docs/data_layer/acceptance.md)和[第一阶段最终验收](docs/research/phase1_literature_research_plan.md#12-最终验收)。

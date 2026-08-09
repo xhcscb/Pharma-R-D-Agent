@@ -1,1 +1,1 @@
-document_id,source_type,source_name,title,company_or_topic,published_at,retrieved_at,language,page_count,pdf_type,layout_tags,table_tags,chart_tags,footnote_tags,license_status,source_url,content_hash,difficulty,annotation_status,notes
+document_id,source_type,source_name,source_authority,title,company_or_topic,published_at,retrieved_at,language,page_count,pdf_type,layout_tags,table_tags,chart_tags,footnote_tags,license_status,access_class,source_url,content_hash,difficulty,annotation_status,primary_annotator,secondary_reviewer,notes
