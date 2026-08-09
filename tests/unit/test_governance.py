@@ -81,6 +81,39 @@ def test_restricted_version_cannot_enter_public_snapshot(db_session, tmp_path) -
         )
 
 
+def test_publicly_accessible_version_cannot_enter_public_snapshot(db_session, tmp_path) -> None:
+    page = tmp_path / "official.html"
+    page.write_text("<p>官方公开页面，仅供内部解析。</p>", encoding="utf-8")
+    manifest = tmp_path / "official.json"
+    manifest.write_text(
+        json.dumps(
+            [
+                {
+                    "source_record_id": "OFFICIAL-1",
+                    "title": "官方公开页面",
+                    "local_path": str(page),
+                    "license_status": "public_access",
+                    "access_class": "team_internal",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    IngestionService(db_session, LocalObjectStore(tmp_path / "objects")).ingest(
+        NewsAdapter(manifest), {"manifest_path": str(manifest)}
+    )
+    document = db_session.scalar(select(Document))
+
+    with pytest.raises(ValueError, match="Public snapshots"):
+        CanonicalRepository(db_session).create_snapshot(
+            name="invalid-public-access",
+            specification={},
+            manifest={"document_version_ids": [document.current_version_id]},
+            access_class=AccessClass.PUBLIC,
+            created_by="test",
+        )
+
+
 def test_assertion_without_evidence_cannot_be_approved(db_session) -> None:
     assertion = AssertionRecord(
         subject_mention_id="missing-mention",

@@ -12,7 +12,7 @@
     "published_at": {"type": ["string", "null"], "format": "date-time"},
     "retrieved_at": {"type": "string", "format": "date-time"},
     "content_urls": {"type": "array", "items": {"type": "string", "format": "uri"}},
-    "license_status": {"enum": ["public", "authorized_restricted", "metadata_only", "prohibited", "unknown"]},
+    "license_status": {"enum": ["public", "public_access", "authorized_restricted", "metadata_only", "prohibited", "unknown"]},
     "access_class": {"enum": ["public", "team_internal", "restricted"]},
     "document_type": {"type": "string"},
     "raw_metadata": {"type": "object"}

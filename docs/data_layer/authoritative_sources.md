@@ -1,188 +1,155 @@
-# 权威数据源配置与接入说明
+# 中国大陆权威数据源配置与接入说明
 
-本文说明数据从哪里来、哪些来源可以自动同步、哪些来源必须人工建清单，以及如何验证来源没有被错误配置。
+## 1. 当前范围
 
-## 1. 权威性分级
+数据层的受支持入口只接入中国大陆来源。来源目录位于
+[`config/authoritative_sources.json`](../../config/authoritative_sources.json)，每条记录都固定包含
+`jurisdiction=CN-MAINLAND`。CLI 和 REST API 不再提供 ClinicalTrials.gov、FDA、SEC 或港交所同步入口。
 
-本工程只启用两个来源等级：
+当前登记 31 个来源，覆盖券商研报、临床、药品监管、医保支付、财务报表、新闻、电话会议、行业统计、进出口、专利和药物安全。
 
-- `A1`：监管机构、临床注册机构、证券交易所等第一方官方数据；
-- `A2`：上市公司投资者关系网站、券商研究所或获得合法授权的提供方。
+来源分级：
 
-聚合网站、转载媒体和来源不明的数据不能冒充 `A1/A2`。全部已配置来源见 [`config/authoritative_sources.json`](../../config/authoritative_sources.json)。
+- `A1`：国务院部门、监管机构、交易所、法定披露平台和国家级注册平台；
+- `A2`：中国大陆上市公司第一方材料、持牌证券公司研究所或已获合法授权的提供方。
 
-## 2. 已可自动同步的来源
+聚合网站、转载媒体、自媒体和来源不明数据库不能冒充 `A1/A2`。
 
-| 数据 | 官方来源 | 接入方式 | 密钥或身份 | 当前命令 |
-|---|---|---|---|---|
-| 临床试验 | ClinicalTrials.gov | API v2 完整 JSON | 无 | `clinicaltrials` |
-| 药品标签、审批、召回、短缺 | openFDA | REST API | 小规模可无密钥；生产建议 API Key | `openfda` |
-| 财务申报正文 | SEC EDGAR Submissions | REST API + 官方 Archives | 必须提供项目联系邮箱 | `sec-filings` |
-| 标准化财务事实 | SEC EDGAR CompanyFacts | REST API 完整 JSON | 必须提供项目联系邮箱 | `sec-companyfacts` |
-| 药品、疫苗、生物制品和新闻稿 | FDA | 官方 RSS + 官方网页 | 无 | `fda-news` |
+## 2. 接入方式必须如实标记
 
-官方依据：
+| 接入方式 | 含义 | 系统动作 |
+|---|---|---|
+| `official_direct_document` | 官方页面或文件存在稳定直链 | 可小批量自动读取，并校验请求前后域名 |
+| `official_download` | 官网提供下载文件 | 人工确认下载项后接入 |
+| `official_query` | 官网提供公开查询，但没有稳定公开 API | 人工查询、导出或登记详情页 |
+| `official_manifest` | 逐项登记官方 URL 或本地文件 | 使用清单导入 |
+| `authorized_manifest` | 内容受版权或订阅约束 | 核验授权后使用受限清单 |
 
-- [ClinicalTrials.gov API v2](https://clinicaltrials.gov/data-api/about-api)提供现代 JSON API 和 OpenAPI 规范；
-- [SEC EDGAR 数据 API](https://www.sec.gov/search-filings/edgar-application-programming-interfaces)公开 Submissions 和 XBRL CompanyFacts，访问不需要 API Key；
-- [SEC 自动访问政策](https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits)要求自动工具可识别，并限制过高请求速率；
-- [openFDA 药品端点](https://open.fda.gov/apis/drug/)覆盖标签、Drugs@FDA、召回和短缺；[认证说明](https://open.fda.gov/apis/authentication/)给出无 Key 和有 Key 的调用限额；
-- [FDA 官方订阅页](https://www.fda.gov/about-fda/contact-fda/subscribe-podcasts-and-news-feeds)列出药品、生物制品、MedWatch 和新闻稿 RSS。
+截至 2026-08-09，未发现能够同时满足“官方文档、稳定、跨主体批量查询”三个条件的中国大陆临床、A 股公告、研报和电话会议统一开放 API。部分官网前端存在查询端点，但官方没有承诺其稳定性；项目不会把网页内部端点写成“公开 API”。
 
-## 3. 必须使用官方清单的来源
+## 3. 核心来源
 
-以下来源没有被官方承诺为稳定的跨站点公开 API，工程不调用网页内部接口：
+### 3.1 临床与药品监管
 
-| 数据 | 权威来源 | 接入方式 | 原因 |
-|---|---|---|---|
-| 中国临床试验 | 药物临床试验登记与信息公示平台 | 官方 URL/导出文件清单 | 未提供稳定公开 API |
-| CDE/NMPA 文件 | CDE、NMPA 官方网站 | 官方 URL/文件清单 | 只读取公开页面，不绕过验证码 |
-| A 股财报与公告 | 巨潮资讯、上交所、深交所 | 官方公告 URL/导出清单 | 网页内部接口不等于公开 API |
-| 港股公告 | HKEXnews | 官方公告 URL/导出清单 | 保留公告编号和原始链接 |
-| 券商研报 | 券商研究所或合法授权提供方 | 授权文件清单 | 版权和订阅边界不同，不存在统一开放 API |
-| 电话会议 | 公司 IR、交易所投资者关系记录 | 官方 URL 或已授权音视频清单 | 不存在统一官方 API，录音权利需逐份确认 |
+| 来源 | 可获得数据 | 当前接入 |
+|---|---|---|
+| [药物临床试验登记与信息公示平台](https://www.chinadrugtrials.org.cn/) | CTR 登记号、药物、适应症、申办者、阶段和状态 | 人工查询/导出 |
+| [中国临床试验注册中心](https://www.chictr.org.cn/about.html) | ChiCTR 登记、研究设计、机构和结局 | 人工查询/导出 |
+| [药审中心](https://www.cde.org.cn/main/guide/contentpage/545cf855a50574699b46b26bcb165f32) | 受理、公示、上市药品、审评报告和说明书 | 官方文件清单 |
+| [国家药监局数据查询](https://www.nmpa.gov.cn/datasearch/home-index.html) | 药品批准、持有人、生产企业和器械批准 | 官方查询/导出 |
+| [国家药监局政务服务](https://zwfw.nmpa.gov.cn/web/taskview/11100000MB0341032Y100207202900001) | 临床试验登记与审批事项、材料和法定依据 | 稳定页面直连 |
+| [国家药品不良反应监测中心](https://www.cdr-adr.org.cn/) | 药物警戒、风险沟通和年度报告 | 官方文件清单 |
+| [医疗器械唯一标识数据库](https://udi.nmpa.gov.cn/) | 器械标识、注册人和产品信息 | 官方查询 |
 
-清单字段和许可规则见[数据清单编写指南](manifest_guide.md)。
+药物临床试验平台和 CDE 对部分自动请求返回校验页；ChiCTR 检索页对自动 GET 有访问限制。系统不得绕过验证码、脚本校验或登录。
 
-## 4. 环境配置
+### 3.2 医保、市场空间与行业统计
 
-复制示例配置：
+| 来源 | 可获得数据 | 当前接入 |
+|---|---|---|
+| [国家医保药品目录](https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html) | 目录准入、支付范围、谈判和创新药目录 | 页面/附件直连 |
+| [国家组织集中采购](https://www.nhsa.gov.cn/col/col187/index.html) | 集采批次、品种、中选企业、价格和采购量 | 官方下载 |
+| [国家医保局统计](https://www.nhsa.gov.cn/) | 参保、基金支出、结算人次和谈判药使用 | 页面/附件直连 |
+| [国家卫健委统计年鉴](https://www.nhc.gov.cn/wjw/tjnj/list.shtml) | 医疗机构、患者、卫生费用和资源 | 人工下载 |
+| [国家数据](https://data.stats.gov.cn/) | 人口、医药制造业、价格和工业利润 | 官方查询/下载 |
+| [海关统计](https://stats.customs.gov.cn/) | 药品、原料药和器械进出口 | 官方查询/下载 |
+| [国家知识产权局](https://www.cnipa.gov.cn/) | 专利、申请人、法律状态和期限 | 官方查询 |
+| [中国疾控中心](https://www.chinacdc.cn/) | 疾病监测、流行病学和疫苗信息 | 官方报告清单 |
 
-~~~powershell
-Copy-Item .env.example .env
-~~~
+### 3.3 财务报表与证券监管
 
-必须人工填写：
+| 来源 | 用途 | 当前接入 |
+|---|---|---|
+| [巨潮资讯](https://www.cninfo.com.cn/new/index) | 沪深京法定公告、定期报告和临时公告 | 官方 PDF 直连/清单 |
+| [上海证券交易所](https://www.sse.com.cn/disclosure/listedinfo/announcement/) | 沪市公告和监管问询 | 官方清单 |
+| [深圳证券交易所](https://www.szse.cn/disclosure/listed/notice/) | 深市公告和监管问询 | 官方清单 |
+| [北京证券交易所](https://www.bse.cn/disclosure/announcement.html) | 北交所上市公司公告 | 官方清单 |
+| [全国股转系统](https://www.neeq.com.cn/) | 新三板挂牌公司公告 | 官方清单 |
+| [中国证监会](https://www.csrc.gov.cn/) | 监管政策、处罚、IPO 和执法 | 官方清单 |
 
-~~~dotenv
-PROJECT_CONTACT_EMAIL=团队真实可联系邮箱
-~~~
+结构化 XBRL/XLSX 优先于 PDF；没有结构化文件时，PDF 是原始证据。报告期、发布日期、币种、单位、合并范围、审计和重述必须分别保存。
 
-SEC 要求自动工具具有可联系身份。未配置时，`sec-filings`、`sec-companyfacts` 和真实演示会明确返回 `NOT_CONFIGURED`，不会匿名请求。
+### 3.4 电话会议和投资者关系
 
-可选配置：
+| 来源 | 可获得材料 | 当前接入 |
+|---|---|---|
+| [巨潮投资者关系](https://irm.cninfo.com.cn/) | 活动记录表、分析师会议、业绩说明会和问答 | 官方 PDF/页面 |
+| [上证路演中心](https://www.sseinfo.com/services/roadshow/showcenter/) | 业绩说明会、路演、图文和音视频 | 清单，音视频逐项核验 |
+| [深交所互动易](https://www.szse.cn/aboutus/trends/news/t20190517_567238.html) | 投资者问答和调研活动记录 | 官方清单 |
+| [北交所](https://www.bse.cn/disclosure/announcement.html) | 业绩说明会材料 | 官方清单 |
+| 上市公司 IR 官网 | 演示稿、文字稿、录音和公告 | 逐家公司建立域名白名单 |
 
-~~~dotenv
-OPENFDA_API_KEY=申请到的免费Key
-SEC_USER_AGENT=项目名/版本 (团队联系邮箱)
-~~~
+“电话会议”数据优先采用交易所披露的活动记录表和公司官方文字稿。录音只有在来源、参与者和使用授权均明确时才允许导入。
 
-`SEC_USER_AGENT` 与 `PROJECT_CONTACT_EMAIL` 二选一。若二者都填，优先使用 `SEC_USER_AGENT`。`.env` 不得提交 Git。
+### 3.5 券商研报与官方新闻
 
-## 5. 列出和检查来源
+券商研报只允许来自中国大陆持牌证券公司研究所或合法授权提供方。中国证券业协会的[发布证券研究报告执业规范](https://www.sac.net.cn/sjb/flfg_949/zlgz/202005/t20200525_14376.html)要求研究机构管理信息来源和发布流程；该规范不等于允许第三方复制全文。
 
-列出全部来源及接入方式：
+官方新闻和政策来源包括中国政府网、国家药监局、药审中心、国家医保局、国家卫健委、证监会、交易所、工信部和市场监管总局。公司事件优先使用法定公告，其次才是公司官网新闻。
+
+## 4. 许可和公开边界
+
+新增许可状态：
+
+- `public_access`：公众能访问，允许项目内部解析，但不能据此认定可再分发全文；
+- `public`：有明确依据允许公开分发，才可进入公开快照；
+- `authorized_restricted`：已有授权，但仅限团队内部；
+- `metadata_only`、`prohibited`、`unknown`：不下载正文。
+
+大陆官网直连样本默认使用 `public_access + team_internal`。公开数据集只发布来源元数据、链接、团队原创标注和符合授权范围的派生数据。
+
+## 5. 检查来源
+
+列出全部大陆来源：
 
 ~~~powershell
 .venv\Scripts\datactl.exe source list
 ~~~
 
-只检查本地配置：
+检查目录配置：
 
 ~~~powershell
 .venv\Scripts\datactl.exe source doctor
 ~~~
 
-执行只读网络探测：
+只探测一个来源：
 
 ~~~powershell
-.venv\Scripts\datactl.exe source doctor --live
+.venv\Scripts\datactl.exe source doctor --live --source-id cninfo_disclosures
 ~~~
 
-状态含义：
+不建议第一次就探测全部来源。官网返回 `202`、`405` 或 `412` 时，应转为人工导出，不能更换为转载站点或尝试绕过保护。
 
-| 状态 | 含义 | 处理 |
+## 6. 同步已登记直连样本
+
+~~~powershell
+.venv\Scripts\datactl.exe source sync cninfo_disclosures --run-pipeline
+.venv\Scripts\datactl.exe source sync cninfo_investor_relations --run-pipeline
+.venv\Scripts\datactl.exe source sync nhsa_drug_catalog --run-pipeline
+.venv\Scripts\datactl.exe source sync nmpa_government_service --run-pipeline
+~~~
+
+这些命令读取来源目录中的真实官方样本，用于联调，不等于全量抓取。
+
+没有直连样本的来源会拒绝 `source sync`，并要求使用清单：
+
+~~~powershell
+.venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type china_drug_trials
+.venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type cde
+.venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type financial_reports
+.venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type news
+~~~
+
+## 7. 推荐更新频率
+
+| 数据 | 建议频率 | 去重主键 |
 |---|---|---|
-| `OK` | 官方端点可访问 | 可以同步 |
-| `READY` | 配置完整，但未执行联网测试 | 需要时加 `--live` |
-| `NOT_CONFIGURED` | 缺少联系身份或密钥 | 补充 `.env` |
-| `UNAVAILABLE` | 网络、限流或官方服务临时异常 | 保留错误，稍后重试 |
-| `MANUAL_REQUIRED` | 只能通过官方/授权清单接入 | 按清单指南操作 |
+| 法定公告、监管和安全事件 | 每日 | 公告编号/官方 URL/内容哈希 |
+| 临床登记 | 每周；关键项目每日 | CTR/ChiCTR 编号 + 版本日期 |
+| 财务定期报告 | 披露季每日 | 证券代码 + 报告期 + 公告编号 |
+| 投资者关系记录 | 每周 | 证券代码 + 活动编号 + 日期 |
+| 医保、集采和目录 | 事件触发 | 文件编号 + 发布日期 |
+| 卫生、医保、统计年鉴 | 月度或年度 | 指标代码 + 统计期 + 地区 |
+| 研报 | 授权源到达时 | 机构 + 报告编号 + 内容哈希 |
 
-## 6. 同步命令
-
-### 6.1 ClinicalTrials.gov
-
-~~~powershell
-.venv\Scripts\datactl.exe source sync clinicaltrials `
-  --condition "non-small cell lung cancer" `
-  --intervention pembrolizumab `
-  --page-size 10 --max-pages 1 --run-pipeline
-~~~
-
-保存每条研究的完整官方 JSON，不只截取项目当前使用的字段。
-
-### 6.2 openFDA
-
-药品标签：
-
-~~~powershell
-.venv\Scripts\datactl.exe source sync openfda `
-  --dataset label `
-  --search "openfda.generic_name:pembrolizumab" `
-  --page-size 5 --max-pages 1 --run-pipeline
-~~~
-
-`--dataset` 支持：
-
-- `label`：药品标签；
-- `drugsfda`：Drugs@FDA 审批记录；
-- `enforcement`：召回执法记录；
-- `shortages`：药品短缺记录。
-
-### 6.3 SEC EDGAR
-
-财务事实：
-
-~~~powershell
-.venv\Scripts\datactl.exe source sync sec-companyfacts `
-  --cik 0000310158 --run-pipeline
-~~~
-
-申报正文：
-
-~~~powershell
-.venv\Scripts\datactl.exe source sync sec-filings `
-  --cik 0000310158 `
-  --forms "10-K,10-Q,8-K" `
-  --after-date 2025-01-01 `
-  --page-size 3 --max-pages 1 --run-pipeline
-~~~
-
-`CIK` 是 SEC 公司标识，系统会自动补足为 10 位。申报正文来自 SEC Archives，记录 accession number、表单类型、报告期和官方证据 URL。
-
-### 6.4 FDA 官方新闻
-
-~~~powershell
-.venv\Scripts\datactl.exe source sync fda-news `
-  --feed drugs --page-size 3 --run-pipeline
-~~~
-
-`--feed` 支持 `drugs`、`biologics` 和 `press-releases`。
-
-## 7. 同步后的数据流
-
-自动来源与清单来源使用同一条流水线：
-
-```text
-官方发现接口
-→ 原始响应/正文按 SHA-256 存档
-→ 文档版本
-→ 解析元素
-→ 实体提及
-→ 带证据主张
-→ 清洗与冲突检测
-→ 人工复核
-→ 四类投影
-```
-
-API 返回的原始 JSON、SEC 申报正文和 FDA 新闻 HTML 都会先进入对象存储。规范化结果不能覆盖或替代原始证据。
-
-## 8. 生产使用限制
-
-- 演示默认每个来源只取 1 条，不能把演示参数直接改成无界批量抓取；
-- SEC 请求必须带真实联系身份，速率保持低于官方上限；
-- openFDA 大批量任务应申请 API Key，并优先考虑官方批量下载；
-- 官方服务临时返回 429 或 5xx 时有限重试，最终失败会保留错误，不会伪造空结果；
-- 中国监管、交易所和 IR 网站如无公开 API，只使用官方清单；
-- 研报和电话会议始终逐份核验许可，受限内容不得进入公开快照。
+所有更新都保留旧版本，不用“最新值”覆盖历史事实。

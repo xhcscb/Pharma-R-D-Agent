@@ -19,8 +19,7 @@ Copy-Item .env.example .env
 编辑 `.env`，至少替换：
 
 - `INTERNAL_API_KEY`；
-- `PROJECT_CONTACT_EMAIL`：团队真实可联系邮箱，SEC 同步必须；
-- `OPENFDA_API_KEY`：可选，批量使用 openFDA 时建议填写。
+- `PROJECT_CONTACT_EMAIL`：团队来源管理联系人，可选但建议填写。
 
 `.env` 已被忽略，不要提交。
 
@@ -61,7 +60,8 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 ~~~powershell
 .venv\Scripts\datactl.exe source list
-.venv\Scripts\datactl.exe source doctor --live
+.venv\Scripts\datactl.exe source doctor
+.venv\Scripts\datactl.exe source doctor --live --source-id cninfo_disclosures
 ~~~
 
 运行真实小样本演示：
@@ -70,7 +70,9 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .venv\Scripts\datactl.exe source demo
 ~~~
 
-演示结果见 `data/demo/authoritative-demo-report.json`。完整说明见[权威数据源调试与演示](authoritative_source_demo.md)。
+演示结果见 `data/demo/china-mainland-demo-report.json`。完整说明见[权威数据源调试与演示](authoritative_source_demo.md)。
+
+演示只使用国家药监局、国家医保局和巨潮资讯等中国大陆官方来源。药物临床试验平台、CDE、ChiCTR 等受访问保护的来源采用人工导出清单，不绕过校验。
 
 ## 5. 导入一份合成新闻
 

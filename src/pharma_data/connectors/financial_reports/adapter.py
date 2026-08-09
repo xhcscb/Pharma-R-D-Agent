@@ -7,7 +7,7 @@ class FinancialReportAdapter(ManifestSourceAdapter):
     adapter_name = "FinancialReportAdapter"
     authority_tier = "A1"
     document_type = DocumentType.FINANCIAL_REPORT
-    default_license_status = LicenseStatus.PUBLIC
+    default_license_status = LicenseStatus.PUBLIC_ACCESS
     allowed_media_types = {
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

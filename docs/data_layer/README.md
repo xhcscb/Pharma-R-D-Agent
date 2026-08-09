@@ -32,8 +32,8 @@
 | 文档 | 主要内容 |
 |---|---|
 | [quickstart.md](quickstart.md) | 从空环境到完成首批导入的最短路径 |
-| [authoritative_sources.md](authoritative_sources.md) | 官方 API、许可边界、配置、诊断和同步命令 |
-| [authoritative_source_demo.md](authoritative_source_demo.md) | 四个真实小样本的一键调试和结果判读 |
+| [authoritative_sources.md](authoritative_sources.md) | 中国大陆官方来源、许可边界、配置、诊断和同步命令 |
+| [authoritative_source_demo.md](authoritative_source_demo.md) | 五个真实大陆样本的一键调试和结果判读 |
 | [operations.md](operations.md) | 启动、五类导入、处理、复核、投影、查询和验收 |
 | [manifest_guide.md](manifest_guide.md) | CSV/JSON/JSONL 字段、许可、路径与五类示例 |
 | [maintenance_and_recovery.md](maintenance_and_recovery.md) | 监控、备份、恢复、任务故障和投影重建 |

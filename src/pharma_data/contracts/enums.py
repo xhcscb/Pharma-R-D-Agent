@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class LicenseStatus(StrEnum):
     PUBLIC = "public"
+    PUBLIC_ACCESS = "public_access"
     AUTHORIZED_RESTRICTED = "authorized_restricted"
     METADATA_ONLY = "metadata_only"
     PROHIBITED = "prohibited"

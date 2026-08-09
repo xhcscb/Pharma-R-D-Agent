@@ -33,8 +33,7 @@ Copy-Item .env.example .env
 至少修改：
 
 - `INTERNAL_API_KEY`：长随机值；
-- `PROJECT_CONTACT_EMAIL`：团队真实可联系邮箱，SEC 自动访问必须；
-- `OPENFDA_API_KEY`：可选，批量使用 openFDA 时建议填写；
+- `PROJECT_CONTACT_EMAIL`：团队来源管理联系人，可选但建议填写；
 - `HF_TOKEN`：仅在所选模型确实需要时填写。
 
 仓库中的数据库口令只适合本地开发。部署到共享环境前，必须同时修改 `compose.yaml` 中的服务端口令和 `.env` 中的连接 URL 或客户端口令，确保两侧一致。例如修改 `NEO4J_PASSWORD` 时，也要同步修改 `NEO4J_AUTH`。
@@ -65,7 +64,8 @@ Copy-Item .env.example .env
 
 ~~~powershell
 .venv\Scripts\datactl.exe source list
-.venv\Scripts\datactl.exe source doctor --live
+.venv\Scripts\datactl.exe source doctor
+.venv\Scripts\datactl.exe source doctor --live --source-id cninfo_disclosures
 ~~~
 
 来源依据、API 限制和配置项见[权威数据源配置与接入说明](authoritative_sources.md)。
@@ -132,65 +132,53 @@ docker compose --profile core exec api datactl ingest manifest manifests/example
 
 ### 4.2 临床数据
 
-ClinicalTrials.gov 官方 API 增量同步：
+从药物临床试验登记平台或 ChiCTR 人工查询并导出，保留 CTR/ChiCTR 登记号、详情页、查询日期和导出文件。按清单导入：
 
 ~~~powershell
-docker compose --profile core exec api datactl source sync clinicaltrials --condition oncology --page-size 100 --max-pages 1
-~~~
-
-openFDA 药品标签小批量同步：
-
-~~~powershell
-docker compose --profile core exec api datactl source sync openfda --dataset label --search "openfda.generic_name:pembrolizumab" --page-size 10 --max-pages 1
-~~~
-
-也可按清单导入中国药物临床试验、CDE/NMPA 文件和临床结果附件：
-
-~~~powershell
-docker compose --profile core exec api datactl ingest manifest manifests/examples/clinical_documents.csv --source-type clinical_documents
 docker compose --profile core exec api datactl ingest manifest PATH_TO_MANIFEST --source-type china_drug_trials
 docker compose --profile core exec api datactl ingest manifest PATH_TO_MANIFEST --source-type cde
+docker compose --profile core exec api datactl ingest manifest PATH_TO_MANIFEST --source-type clinical_documents
 ~~~
 
-ClinicalTrials.gov 原始 JSON 会完整保存；规范化字段不能代替原始响应。
+可用国家药监局政务服务官方页面验证临床监管文档解析：
+
+~~~powershell
+.venv\Scripts\datactl.exe source sync nmpa_government_service --run-pipeline
+~~~
+
+药物临床试验平台、CDE 和 ChiCTR 没有被官方承诺稳定的批量 API，且存在访问保护。不得调用未公开内部接口或绕过校验。
 
 ### 4.3 财务报告
 
-SEC CompanyFacts 官方 JSON：
+先用真实大陆官方财报样本验证：
 
 ~~~powershell
-docker compose --profile core exec api datactl source sync sec-companyfacts --cik 0000310158
+.venv\Scripts\datactl.exe source sync cninfo_disclosures --run-pipeline
 ~~~
 
-SEC 官方申报正文：
-
-~~~powershell
-docker compose --profile core exec api datactl source sync sec-filings --cik 0000310158 --forms "10-K,10-Q,8-K" --page-size 3 --max-pages 1
-~~~
-
-中国内地和香港公告使用官方 URL 清单：
+正式数据从巨潮资讯、上交所、深交所、北交所或全国股转系统导出后使用官方清单：
 
 ~~~powershell
 docker compose --profile core exec api datactl ingest manifest manifests/examples/financial_reports.csv --source-type financial_reports
 ~~~
 
-优先选择交易所、巨潮资讯、HKEX 或公司 IR 的 XBRL/XML、XLSX；PDF 作为证据或降级来源。报告期、发布日期、币种、单位、合并范围、审计和重述状态必须分开保存。
+优先选择交易所、巨潮资讯或公司 IR 的 XBRL/XML、XLSX；PDF 作为证据或降级来源。报告期、发布日期、币种、单位、合并范围、审计和重述状态必须分开保存。
 
 ### 4.4 新闻
 
-FDA 官方 RSS：
+国家医保局真实政策样本：
 
 ~~~powershell
-docker compose --profile core exec api datactl source sync fda-news --feed drugs --page-size 3
+.venv\Scripts\datactl.exe source sync nhsa_drug_catalog --run-pipeline
 ~~~
 
-其他官方新闻使用清单：
+其他新闻只使用中国政府网、国家药监局、CDE、国家医保局、国家卫健委、证监会、交易所、工信部、市场监管总局或上市公司第一方页面：
 
 ~~~powershell
 docker compose --profile core exec api datactl ingest manifest manifests/examples/news.csv --source-type news
 ~~~
 
-Gold 新闻优先使用监管机构、交易所和公司官方新闻。普通媒体必须明确来源等级、许可状态，并保留修订或撤稿信息。
+Gold 新闻优先使用监管机构、交易所或公司法定公告。普通媒体只能作为线索，不能替代关键主张的官方证据。
 
 ### 4.5 电话会议
 
@@ -200,13 +188,19 @@ docker compose --profile core exec api datactl ingest manifest manifests/example
 
 可导入官方文字稿、投资者关系活动记录、演示材料和已授权 MP3/WAV/MP4。说话人身份必须来自官方参与名单、主持人介绍或人工确认。
 
+真实大陆投资者关系样本：
+
+~~~powershell
+.venv\Scripts\datactl.exe source sync cninfo_investor_relations --run-pipeline
+~~~
+
 ### 4.6 一键真实来源演示
 
 ~~~powershell
 .venv\Scripts\datactl.exe source demo
 ~~~
 
-该命令用隔离 SQLite 数据库下载 ClinicalTrials.gov、openFDA、SEC CompanyFacts 和 FDA RSS 各一条，并立即执行解析、抽取和清洗。操作与结果解释见[权威数据源调试与演示](authoritative_source_demo.md)。
+该命令用隔离 SQLite 数据库下载国家药监局、国家医保局和巨潮资讯的五条真实大陆样本，并立即执行解析、抽取和清洗。操作与结果解释见[中国大陆权威数据源调试与演示](authoritative_source_demo.md)。
 
 ## 5. 观察流水线
 

@@ -21,7 +21,8 @@
 
 | `license_status` | 含义 | 是否抓取正文 |
 |---|---|---|
-| `public` | 官方公开或许可允许公开使用 | 是 |
+| `public` | 有明确依据允许公开再分发 | 是 |
+| `public_access` | 公众可访问，仅限团队内部解析和派生使用 | 是 |
 | `authorized_restricted` | 已授权，但仅限受控内部使用 | 是 |
 | `metadata_only` | 只允许记录元数据 | 否 |
 | `prohibited` | 明确禁止处理 | 否 |
@@ -58,11 +59,7 @@
 | `news` | 新闻 |
 | `earnings_calls` | 电话会议 |
 
-ClinicalTrials.gov 自动同步不使用清单：
-
-~~~powershell
-datactl source sync clinicaltrials --condition oncology --page-size 100 --max-pages 1
-~~~
+中国大陆临床注册平台没有被官方承诺稳定的批量 API。先从官网查询或导出，再使用 `china_drug_trials` 清单导入。
 
 ## 5. 五类清单示例
 
@@ -79,16 +76,16 @@ REPORT-2026-001,某公司创新药深度报告,2026-08-01,,../../data/restricted
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,registry_id
-CLINICAL-2026-001,NCT00000000 结果附件,2026-07-20,https://clinicaltrials.gov/study/NCT00000000,../../data/public/NCT00000000.json,public,public,NCT00000000
+CTR20260083,CTR20260083临床试验登记导出,2026-08-09,https://www.chinadrugtrials.org.cn/clinicaltrials.searchlist.dhtml?keywords=CTR20260083,../../data/internal/CTR20260083.html,public_access,team_internal,CTR20260083
 ~~~
 
-ClinicalTrials.gov 记录优先使用官方 API。中国临床和 CDE 文件应保存官方登记号或受理号。
+临床和 CDE 文件必须保存官方登记号或受理号、查询日期和详情页。不要把搜索结果页的当前状态当作永久属性。
 
 ### 5.3 财务报告
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,exchange,stock_code,report_period
-FIN-2025-001,某公司2025年年度报告,2026-03-30,https://official.example/report,../../data/public/annual-report-2025.xml,public,public,SSE,600000.SH,2025
+CNINFO-1225032585,恒瑞医药2025年年度报告,2026-03-26,https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF,../../data/internal/1225032585.PDF,public_access,team_internal,SSE,600276.SH,2025
 ~~~
 
 `report_period` 与 `published_at` 必须分开。自定义列会进入原始元数据，可以补充币种、审计状态和合并范围。
@@ -97,7 +94,7 @@ FIN-2025-001,某公司2025年年度报告,2026-03-30,https://official.example/re
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,publisher
-NEWS-2026-001,某公司药品获批公告,2026-08-02T18:00:00+08:00,https://official.example/news,../../data/public/news-001.html,public,public,公司投资者关系
+NHSA-DRUG-CATALOG-2025,2025年国家医保药品目录通知,2025-12-07,https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html,../../data/internal/nhsa-2025.html,public_access,team_internal,国家医疗保障局
 ~~~
 
 如正文被修订或撤回，不要覆盖旧文件；保留新版本并记录修订关系。
@@ -117,14 +114,14 @@ JSON 可直接使用记录数组，也可使用 `{"records": [...]}`。JSONL 每
 
 ~~~json
 {
-  "source_record_id": "NEWS-2026-001",
-  "title": "某公司药品获批公告",
-  "published_at": "2026-08-02T18:00:00+08:00",
-  "canonical_url": "https://official.example/news",
-  "content_url": "https://official.example/news/body.html",
-  "license_status": "public",
-  "access_class": "public",
-  "publisher": "公司投资者关系"
+  "source_record_id": "NHSA-DRUG-CATALOG-2025",
+  "title": "2025年国家医保药品目录通知",
+  "published_at": "2025-12-07",
+  "canonical_url": "https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html",
+  "content_url": "https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html",
+  "license_status": "public_access",
+  "access_class": "team_internal",
+  "publisher": "国家医疗保障局"
 }
 ~~~
 

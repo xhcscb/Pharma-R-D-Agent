@@ -15,15 +15,11 @@ from pharma_data.connectors import (
     CdeManifestAdapter,
     ChinaDrugTrialsManifestAdapter,
     ClinicalDocumentAdapter,
-    ClinicalTrialsGovAdapter,
     EarningsCallAdapter,
-    FdaNewsAdapter,
     FinancialReportAdapter,
+    MainlandCatalogAdapter,
     NewsAdapter,
-    OpenFdaDrugAdapter,
     ResearchReportManifestAdapter,
-    SecCompanyFactsAdapter,
-    SecEdgarFilingsAdapter,
     SourceAdapter,
 )
 from pharma_data.connectors.http_client import authoritative_get
@@ -77,15 +73,28 @@ def load_source_catalog() -> dict[str, Any]:
     payload = json.loads(SOURCE_CATALOG_PATH.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("权威来源目录根节点必须是 JSON 对象")
+    scope = payload.get("scope", {})
+    if scope.get("jurisdiction") != "CN-MAINLAND":
+        raise ValueError("权威来源目录必须限定为 CN-MAINLAND")
+    sources = payload.get("sources")
+    if not isinstance(sources, list) or not sources:
+        raise ValueError("权威来源目录必须包含非空 sources 数组")
+    source_ids: set[str] = set()
+    for source in sources:
+        if source.get("jurisdiction") != "CN-MAINLAND":
+            raise ValueError(f"发现非中国大陆来源: {source.get('source_id')}")
+        source_id = str(source.get("source_id") or "")
+        if not source_id or source_id in source_ids:
+            raise ValueError(f"来源编号为空或重复: {source_id}")
+        source_ids.add(source_id)
     return dict(payload)
 
 
-def fda_feeds() -> dict[str, str]:
-    return {
-        str(source["feed_name"]): str(source["base_url"])
-        for source in load_source_catalog()["sources"]
-        if source.get("sync_name") == "fda-news" and source.get("feed_name")
-    }
+def catalog_source(source_id: str) -> dict[str, Any]:
+    for source in load_source_catalog()["sources"]:
+        if source["source_id"] == source_id:
+            return dict(source)
+    raise KeyError(source_id)
 
 
 def print_json(payload: Any) -> None:
@@ -160,9 +169,11 @@ def source_list() -> None:
                         "name",
                         "authority",
                         "authority_tier",
+                        "jurisdiction",
                         "access_mode",
-                        "sync_name",
+                        "automation_level",
                         "credential",
+                        "redistribution_policy",
                         "enabled",
                         "note",
                     )
@@ -177,41 +188,40 @@ def source_list() -> None:
 @source_app.command("doctor")
 def source_doctor(
     live: bool = typer.Option(False, help="执行只读网络探测"),
-    strict: bool = typer.Option(False, help="任一自动来源失败时返回非零退出码"),
+    strict: bool = typer.Option(False, help="任一联网探测失败时返回非零退出码"),
+    source_id: str | None = typer.Option(None, help="只检查指定来源编号"),
 ) -> None:
     settings = get_settings()
     results = []
     failures = 0
-    for source in load_source_catalog()["sources"]:
+    sources = load_source_catalog()["sources"]
+    if source_id:
+        sources = [source for source in sources if source["source_id"] == source_id]
+        if not sources:
+            raise typer.BadParameter(f"未知来源编号: {source_id}")
+    for source in sources:
         access_mode = source["access_mode"]
+        automation_level = source["automation_level"]
+        probe_url = source.get("probe_url")
         result = {
             "source_id": source["source_id"],
+            "jurisdiction": source["jurisdiction"],
             "access_mode": access_mode,
-            "status": "READY" if access_mode in {"api", "rss"} else "MANUAL_REQUIRED",
+            "automation_level": automation_level,
+            "status": "READY" if automation_level != "manual" else "MANUAL_REQUIRED",
         }
-        sec_identity: str | None = None
-        if str(source["source_id"]).startswith("sec_"):
-            try:
-                sec_identity = settings.identified_sec_user_agent()
-            except ValueError as exc:
-                result.update(status="NOT_CONFIGURED", detail=str(exc))
-                failures += 1
-                results.append(result)
-                continue
-        if live and access_mode in {"api", "rss"}:
+        if live and probe_url:
             headers = {"User-Agent": settings.http_user_agent}
-            if sec_identity:
-                headers["User-Agent"] = sec_identity
             started = perf_counter()
             try:
                 response = authoritative_get(
-                    str(source["probe_url"]),
+                    str(probe_url),
                     headers=headers,
                     timeout=30,
                     attempts=2,
                 )
                 result.update(
-                    status="OK",
+                    status=("OK" if response.status_code == 200 else "REACHABLE_WITH_RESTRICTIONS"),
                     http_status=response.status_code,
                     latency_ms=round((perf_counter() - started) * 1000),
                 )
@@ -222,49 +232,48 @@ def source_doctor(
                     latency_ms=round((perf_counter() - started) * 1000),
                 )
                 failures += 1
+        elif live and not probe_url:
+            result.update(status="MANIFEST_REQUIRED", detail="该来源必须逐项登记官网或授权材料")
         results.append(result)
-    print_json({"live": live, "results": results, "automatic_failures": failures})
+    print_json(
+        {
+            "live": live,
+            "jurisdiction": "CN-MAINLAND",
+            "results": results,
+            "live_failures": failures,
+        }
+    )
     if strict and failures:
         raise typer.Exit(1)
 
 
 @source_app.command("demo")
 def source_demo(
-    database: Path = typer.Option(Path("data/demo/authoritative-demo.db")),
-    object_store: Path = typer.Option(Path("data/demo/objects")),
-    report_path: Path = typer.Option(Path("data/demo/authoritative-demo-report.json")),
+    database: Path = typer.Option(Path("data/demo/china-mainland-demo.db")),
+    object_store: Path = typer.Option(Path("data/demo/china-mainland-objects")),
+    report_path: Path = typer.Option(Path("data/demo/china-mainland-demo-report.json")),
 ) -> None:
-    """下载四个小样本并跑通解析、抽取和清洗，不删除既有演示数据。"""
+    """下载中国大陆官方小样本并跑通解析、抽取和清洗。"""
     database.parent.mkdir(parents=True, exist_ok=True)
     object_store.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     engine = get_engine(f"sqlite:///{database.resolve().as_posix()}")
     create_schema(engine)
-    feeds = fda_feeds()
-    specs: list[tuple[str, SourceAdapter, dict[str, Any]]] = [
-        (
-            "clinicaltrials",
-            ClinicalTrialsGovAdapter(),
-            {
-                "condition": "non-small cell lung cancer",
-                "intervention": "pembrolizumab",
-                "page_size": 1,
-            },
-        ),
-        (
-            "openfda",
-            OpenFdaDrugAdapter(),
-            {
-                "dataset": "label",
-                "search": "openfda.generic_name:pembrolizumab",
-                "page_size": 1,
-            },
-        ),
-        ("sec-companyfacts", SecCompanyFactsAdapter(), {"cik": "0000310158"}),
-        ("fda-news", FdaNewsAdapter(feeds["drugs"]), {"max_records": 1}),
+    demo_source_ids = [
+        "nmpa_government_service",
+        "cninfo_disclosures",
+        "cninfo_investor_relations",
+        "nhsa_drug_catalog",
+        "nhsa_statistics",
     ]
+    specs: list[tuple[str, SourceAdapter, dict[str, Any]]] = []
+    for source_id in demo_source_ids:
+        source = catalog_source(source_id)
+        specs.append((source_id, MainlandCatalogAdapter(source), {"max_records": 1}))
     demo_report: dict[str, Any] = {
         "started_at": datetime.now(UTC).isoformat(),
+        "jurisdiction": "CN-MAINLAND",
+        "mainland_only": True,
         "database": str(database.resolve()),
         "object_store": str(object_store.resolve()),
         "sources": [],
@@ -307,71 +316,24 @@ def source_demo(
 @source_app.command("sync")
 def source_sync(
     source: str,
-    condition: str | None = typer.Option(None),
-    intervention: str | None = typer.Option(None),
-    dataset: str = typer.Option("label", help="openFDA 数据集"),
-    search: str | None = typer.Option(None, help="openFDA 查询表达式"),
-    cik: str | None = typer.Option(None, help="SEC CIK"),
-    forms: str = typer.Option("10-K,10-Q,20-F,6-K,8-K", help="SEC 表单类型"),
-    after_date: str | None = typer.Option(None, help="SEC 最早申报日，YYYY-MM-DD"),
-    feed: str = typer.Option("drugs", help="FDA RSS 名称"),
-    page_size: int = typer.Option(100, min=1, max=1000),
+    record_id: str | None = typer.Option(None, help="只同步目录中的指定样本记录"),
+    page_size: int = typer.Option(10, min=1, max=100),
     max_pages: int | None = typer.Option(None, min=1),
     run_pipeline: bool = typer.Option(False, help="同步后立即运行本批次处理任务"),
 ) -> None:
-    adapter: Any
-    query: dict[str, Any]
-    if source == "clinicaltrials":
-        adapter = ClinicalTrialsGovAdapter()
-        query = {
-            key: value
-            for key, value in {
-                "condition": condition,
-                "intervention": intervention,
-                "page_size": page_size,
-            }.items()
-            if value is not None
-        }
-    elif source == "openfda":
-        adapter = OpenFdaDrugAdapter()
-        query = {
-            key: value
-            for key, value in {
-                "dataset": dataset,
-                "search": search,
-                "page_size": page_size,
-            }.items()
-            if value is not None
-        }
-    elif source == "sec-filings":
-        if not cik:
-            raise typer.BadParameter("sec-filings 必须提供 --cik")
-        adapter = SecEdgarFilingsAdapter()
-        query = {
-            key: value
-            for key, value in {
-                "cik": cik,
-                "forms": forms,
-                "after_date": after_date,
-                "page_size": page_size,
-            }.items()
-            if value is not None
-        }
-    elif source == "sec-companyfacts":
-        if not cik:
-            raise typer.BadParameter("sec-companyfacts 必须提供 --cik")
-        adapter = SecCompanyFactsAdapter()
-        query = {"cik": cik}
-    elif source == "fda-news":
-        feed_url = fda_feeds().get(feed)
-        if not feed_url:
-            raise typer.BadParameter(f"feed 必须是: {', '.join(sorted(fda_feeds()))}")
-        adapter = FdaNewsAdapter(feed_url)
-        query = {"max_records": page_size}
-    else:
+    try:
+        source_config = catalog_source(source)
+    except KeyError as exc:
+        raise typer.BadParameter(f"未知中国大陆来源: {source}") from exc
+    records = list(source_config.get("sample_records", []))
+    if record_id:
+        records = [item for item in records if item["source_record_id"] == record_id]
+    if not records:
         raise typer.BadParameter(
-            "source 必须是 clinicaltrials、openfda、sec-filings、sec-companyfacts 或 fda-news"
+            "该来源没有可自动读取的直连样本；请从官网人工导出后使用 ingest manifest。"
         )
+    adapter = MainlandCatalogAdapter(source_config)
+    query = {"records": records, "max_records": page_size}
 
     create_schema()
     with session_scope() as session:

@@ -94,7 +94,7 @@ class ChinaDrugTrialsManifestAdapter(ManifestSourceAdapter):
     authority_tier = "A1"
     base_url = "https://www.chinadrugtrials.org.cn"
     document_type = DocumentType.CLINICAL_RECORD
-    default_license_status = LicenseStatus.PUBLIC
+    default_license_status = LicenseStatus.PUBLIC_ACCESS
 
 
 class CdeManifestAdapter(ManifestSourceAdapter):
@@ -103,7 +103,7 @@ class CdeManifestAdapter(ManifestSourceAdapter):
     authority_tier = "A1"
     base_url = "https://www.cde.org.cn"
     document_type = DocumentType.REGULATORY
-    default_license_status = LicenseStatus.PUBLIC
+    default_license_status = LicenseStatus.PUBLIC_ACCESS
 
 
 class ClinicalDocumentAdapter(ManifestSourceAdapter):
@@ -111,5 +111,5 @@ class ClinicalDocumentAdapter(ManifestSourceAdapter):
     adapter_name = "ClinicalDocumentAdapter"
     authority_tier = "B2"
     document_type = DocumentType.CLINICAL_DOCUMENT
-    default_license_status = LicenseStatus.PUBLIC
+    default_license_status = LicenseStatus.PUBLIC_ACCESS
     allowed_media_types = {"application/pdf", "text/html", "application/json"}

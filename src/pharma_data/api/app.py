@@ -1,4 +1,5 @@
 import secrets
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -22,7 +23,6 @@ from pharma_data.connectors import (
     CdeManifestAdapter,
     ChinaDrugTrialsManifestAdapter,
     ClinicalDocumentAdapter,
-    ClinicalTrialsGovAdapter,
     EarningsCallAdapter,
     FinancialReportAdapter,
     NewsAdapter,
@@ -49,7 +49,6 @@ from pharma_data.storage.projectors import ProjectionDispatcher
 
 ADAPTERS = {
     "research_reports": ResearchReportManifestAdapter,
-    "clinicaltrials": ClinicalTrialsGovAdapter,
     "china_drug_trials": ChinaDrugTrialsManifestAdapter,
     "cde": CdeManifestAdapter,
     "clinical_documents": ClinicalDocumentAdapter,
@@ -60,7 +59,7 @@ ADAPTERS = {
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     create_schema()
     yield
 

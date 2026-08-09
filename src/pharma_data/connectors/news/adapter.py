@@ -20,7 +20,7 @@ class NewsAdapter(ManifestSourceAdapter):
     adapter_name = "NewsAdapter"
     authority_tier = "A2"
     document_type = DocumentType.NEWS
-    default_license_status = LicenseStatus.PUBLIC
+    default_license_status = LicenseStatus.PUBLIC_ACCESS
     allowed_media_types = {"text/html", "application/xhtml+xml", "application/json"}
 
     @staticmethod
@@ -62,8 +62,8 @@ class NewsAdapter(ManifestSourceAdapter):
                     title=title,
                     published_at=self._published_at(pub_date),
                     content_urls=[link],
-                    license_status=LicenseStatus.PUBLIC,
-                    access_class=AccessClass.PUBLIC,
+                    license_status=LicenseStatus.PUBLIC_ACCESS,
+                    access_class=AccessClass.TEAM_INTERNAL,
                     document_type=DocumentType.NEWS,
                     raw_metadata={"_content_url": link, "rss_url": rss_url},
                 )
@@ -90,8 +90,8 @@ class NewsAdapter(ManifestSourceAdapter):
                     title=title,
                     published_at=self._published_at(published or updated),
                     content_urls=[link],
-                    license_status=LicenseStatus.PUBLIC,
-                    access_class=AccessClass.PUBLIC,
+                    license_status=LicenseStatus.PUBLIC_ACCESS,
+                    access_class=AccessClass.TEAM_INTERNAL,
                     document_type=DocumentType.NEWS,
                     raw_metadata={"_content_url": link, "rss_url": rss_url},
                 )

@@ -1,25 +1,27 @@
-# 受控数据源目录
+# 中国大陆受控数据源目录
 
-| 数据类别 | 适配器 | 权威来源优先级 | 支持格式 | 默认策略 |
-|---|---|---|---|---|
-| 券商研报 | `ResearchReportManifestAdapter` | 已授权机构或明确授权文件 | PDF | `authorized_restricted / team_internal` |
-| 国际临床 | `ClinicalTrialsGovAdapter` | ClinicalTrials.gov API v2 | 完整 JSON | `public` |
-| 美国药品监管 | `OpenFdaDrugAdapter` | openFDA Drug API | 完整 JSON | `public` |
-| 中国临床 | `ChinaDrugTrialsManifestAdapter` | 官方注册平台 URL 或经复核清单 | HTML、JSON | `public` |
-| 药监文件 | `CdeManifestAdapter` | CDE/NMPA 官方发布 | PDF、HTML、JSON | `public` |
-| 财务报告 | `FinancialReportAdapter` | 交易所、巨潮资讯、HKEX 或公司 IR | XBRL/XML、XLSX、PDF | `public` |
-| 美股申报 | `SecEdgarFilingsAdapter` | SEC Submissions 与 Archives | HTML、Inline XBRL/XML | `public` |
-| 美股财务事实 | `SecCompanyFactsAdapter` | SEC XBRL CompanyFacts | 完整 JSON | `public` |
-| 新闻 | `NewsAdapter` | 监管机构、交易所或公司 IR | RSS、HTML、JSON | `public` |
-| FDA 新闻 | `FdaNewsAdapter` | FDA 官方 RSS 与正文 | RSS、HTML | `public` |
-| 电话会议 | `EarningsCallAdapter` | 公司官方文字稿、IR 记录或授权录音 | TXT、HTML、PDF、MP3、WAV、MP4 | 由清单声明 |
+支持范围固定为 `CN-MAINLAND`。完整的 31 项来源、域名白名单、访问方式、样本和再分发规则见
+[`config/authoritative_sources.json`](../../config/authoritative_sources.json)。
+
+| 数据类别 | 第一优先来源 | 接入方式 | 默认许可 |
+|---|---|---|---|
+| 券商研报 | 中国大陆持牌券商研究所或合法授权提供方 | 授权清单 | `authorized_restricted` |
+| 药物临床 | 药物临床试验登记平台、ChiCTR | 人工查询/导出清单 | `public_access` |
+| 药品监管 | NMPA、CDE、不良反应监测中心 | 官方页面、文件或查询清单 | `public_access` |
+| 医保与集采 | 国家医保局、国家组织药品联合采购办公室 | 官方页面和附件 | `public_access` |
+| 财务报表 | 巨潮资讯、上交所、深交所、北交所、全国股转系统 | 官方 PDF/XBRL/XLSX 清单 | `public_access` |
+| 电话会议 | 巨潮投资者关系、上证路演、互动易、公司 IR | 官方记录或授权音视频 | `public_access` 或 `authorized_restricted` |
+| 官方新闻 | 国务院部门、监管机构、交易所和公司第一方公告 | 官方 URL 清单 | `public_access` |
+| 行业统计 | 国家统计局、卫健委、医保局、海关总署 | 官方查询或下载 | `public_access` |
+| 专利 | 国家知识产权局 | 官方查询 | `public_access` |
 
 ## 接入约束
 
-每条来源记录都必须包含来源记录 ID、标题、许可状态和访问等级。标记为 `metadata_only`、`prohibited` 或 `unknown` 的记录只保留来源元数据，状态设为 `QUARANTINED`，不得抓取正文。
+- 公众可访问不等于允许公开复制，官网材料默认 `public_access + team_internal`；
+- 只有明确允许再分发的内容才能标为 `public`；
+- `metadata_only`、`prohibited`、`unknown` 只保存元数据，不下载正文；
+- 不调用未公开内部接口，不绕过登录、验证码、脚本校验或付费墙；
+- 任何直连请求在跳转前后都必须落在该来源的域名白名单中；
+- 境外来源不在 CLI、REST API 和当前来源目录的受支持范围内。
 
-非公开许可不能声明公开访问。系统不提供无限制券商网站爬虫，也不得绕过登录、付费墙、验证码或访问控制。
-
-清单字段、示例和导入命令见[数据清单编写指南](manifest_guide.md)。
-
-可执行的完整来源目录位于 [`config/authoritative_sources.json`](../../config/authoritative_sources.json)。API 配置、访问规则和诊断命令见[权威数据源配置与接入说明](authoritative_sources.md)。
+使用方法见[中国大陆权威数据源配置与接入说明](authoritative_sources.md)和[数据清单编写指南](manifest_guide.md)。
