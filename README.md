@@ -11,6 +11,8 @@
 - 数据层可视化：[docs/data_layer/visualization.md](docs/data_layer/visualization.md)
 - 团队协作规范：[CONTRIBUTING.md](CONTRIBUTING.md)
 
+远程仓库：[xhcscb/Pharma-R-D-Agent](https://github.com/xhcscb/Pharma-R-D-Agent)。长期分支为 `main`、`develop` 和 `research/phase1-literature`；短期功能分支合并后删除。
+
 ## 当前真实状态
 
 截至 2026-08-09：

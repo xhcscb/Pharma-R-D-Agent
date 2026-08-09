@@ -4,11 +4,29 @@
 
 ## 1. 分支与提交
 
-- 稳定分支：`main`；
-- 论文调研建议分支：`research/phase1-literature`；
-- 数据层功能建议分支：`feat/<简短主题>`；
-- 修复建议分支：`fix/<简短主题>`；
-- 不改写已经共享的提交历史；创建远程仓库后通过 Pull Request 复核。
+远程仓库长期保留三条分支：
+
+| 分支 | 用途 | 合并规则 |
+|---|---|---|
+| `main` | 稳定、可复现的项目基线 | 只接受通过检查的 Pull Request；禁止强制推送 |
+| `develop` | 数据层和 Agent 功能集成 | `feat/*`、`fix/*`、`docs/*` 先合入此分支；阶段稳定后再合入 `main` |
+| `research/phase1-literature` | 第一阶段检索、筛选、深读和研究设计冻结 | 研究产物在本分支协作，达到阶段质量门后合入 `main` |
+
+短期分支命名：
+
+- 功能：`feat/<简短主题>`；
+- 修复：`fix/<简短主题>`；
+- 文档：`docs/<简短主题>`；
+- 自动化协作：`agent/<简短主题>`。
+
+短期分支通过 Pull Request 合并后删除，不在远程长期保留。不得改写已共享分支的提交历史；不得向 `main`、`develop` 或 `research/phase1-literature` 强制推送。
+
+推荐流程：
+
+1. 工程任务从 `develop` 创建短期分支，完成后 Pull Request 回 `develop`；
+2. 论文调研直接从 `research/phase1-literature` 创建短期分支，复核后合回研究分支；
+3. 阶段验收通过后，由负责人发起 `develop → main` 或 `research/phase1-literature → main` 的 Pull Request；
+4. `main` 上只保留已复核提交，不直接进行日常开发。
 
 提交信息使用 Conventional Commits：
 
