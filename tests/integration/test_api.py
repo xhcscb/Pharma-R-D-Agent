@@ -38,6 +38,9 @@ def test_rest_and_graphql_expose_public_document(monkeypatch, tmp_path) -> None:
 
     with TestClient(app) as client:
         assert client.get("/health").json()["status"] == "ok"
+        dashboard = client.get("/demo/data-layer")
+        assert dashboard.status_code == 200
+        assert "医药投研数据处理看板" in dashboard.text
         response = client.post(
             "/v1/ingestions",
             json={
@@ -61,6 +64,12 @@ def test_rest_and_graphql_expose_public_document(monkeypatch, tmp_path) -> None:
         )
         assert graphql_response.status_code == 200
         assert graphql_response.json()["data"]["document"]["title"] == "Official API fixture"
+
+        overview = client.get("/v1/visualizations/data-layer")
+        assert overview.status_code == 200
+        assert overview.json()["summary"]["sources"] == 1
+        assert overview.json()["summary"]["documents"] == 1
+        assert overview.json()["documents"][0]["title"] == "Official API fixture"
 
     get_engine.cache_clear()
     get_settings.cache_clear()
@@ -123,6 +132,22 @@ def test_restricted_document_requires_internal_api_key(monkeypatch, tmp_path) ->
             headers={"X-Internal-API-Key": "test-internal-secret"},
         )
         assert allowed.status_code == 200
+
+        public_overview = client.get("/v1/visualizations/data-layer")
+        assert public_overview.status_code == 200
+        assert public_overview.json()["summary"]["documents"] == 0
+        denied_overview = client.get(
+            "/v1/visualizations/data-layer",
+            params={"caller_access": "restricted"},
+        )
+        assert denied_overview.status_code == 403
+        internal_overview = client.get(
+            "/v1/visualizations/data-layer",
+            params={"caller_access": "restricted"},
+            headers={"X-Internal-API-Key": "test-internal-secret"},
+        )
+        assert internal_overview.status_code == 200
+        assert internal_overview.json()["summary"]["documents"] == 1
 
     get_engine.cache_clear()
     get_settings.cache_clear()

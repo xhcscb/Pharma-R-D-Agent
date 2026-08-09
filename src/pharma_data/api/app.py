@@ -1,9 +1,11 @@
 import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from strawberry.fastapi import GraphQLRouter
@@ -46,6 +48,7 @@ from pharma_data.storage.canonical.models import (
 from pharma_data.storage.canonical.repository import CanonicalRepository
 from pharma_data.storage.object_store import LocalObjectStore
 from pharma_data.storage.projectors import ProjectionDispatcher
+from pharma_data.visualization import build_data_layer_overview
 
 ADAPTERS = {
     "research_reports": ResearchReportManifestAdapter,
@@ -56,6 +59,7 @@ ADAPTERS = {
     "news": NewsAdapter,
     "earnings_calls": EarningsCallAdapter,
 }
+DASHBOARD_PATH = Path(__file__).parent / "static" / "data_layer_dashboard.html"
 
 
 @asynccontextmanager
@@ -72,9 +76,26 @@ app = FastAPI(
 app.include_router(GraphQLRouter(graphql_schema), prefix="/graphql")
 
 
+@app.get("/demo/data-layer", include_in_schema=False)
+def data_layer_dashboard() -> FileResponse:
+    """返回数据层可视化看板。"""
+    return FileResponse(DASHBOARD_PATH, media_type="text/html")
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": "0.2.0"}
+
+
+@app.get("/v1/visualizations/data-layer")
+def data_layer_visualization(
+    caller_access: AccessClass = Query(default=AccessClass.PUBLIC),
+    x_internal_api_key: str | None = Header(default=None),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """返回数据处理、质量和证据链的可视化聚合数据。"""
+    caller_access = _verified_access(caller_access, x_internal_api_key)
+    return build_data_layer_overview(session, _allowed_classes(caller_access))
 
 
 @app.post("/v1/ingestions")

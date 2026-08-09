@@ -5,6 +5,7 @@ API 启动后，可通过以下地址访问：
 - REST 交互文档：`http://127.0.0.1:8000/docs`
 - GraphQL：`http://127.0.0.1:8000/graphql`
 - 健康检查：`http://127.0.0.1:8000/health`
+- 数据层看板：`http://127.0.0.1:8000/demo/data-layer`
 
 ## 权限规则
 
@@ -28,6 +29,9 @@ API 启动后，可通过以下地址访问：
 - `POST /v1/projections/{name}/rebuild`：重建投影；
 - `GET /v1/projections/{name}/status`：查看投影状态；
 - `POST /v1/dataset-snapshots`：创建数据集快照。
+- `GET /v1/visualizations/data-layer`：返回按权限过滤的数据处理、质量和证据链统计。
+
+可视化接口默认只计算文档当前版本的元素、实体和主张，历史版本只进入版本、任务和运行统计。完整操作方法见[数据层可视化操作说明](visualization.md)。
 
 ## GraphQL 字段
 

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>医药投研数据层可视化</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f6;
+      --surface: #ffffff;
+      --surface-soft: #eef4f1;
+      --ink: #13231d;
+      --muted: #64756d;
+      --line: #d8e2dd;
+      --primary: #176b4d;
+      --primary-soft: #d8eee5;
+      --secondary: #285d7a;
+      --warning: #9a6412;
+      --warning-soft: #fff1d6;
+      --danger: #a33c35;
+      --shadow: 0 10px 32px rgba(22, 52, 41, .08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--primary), transparent 65%);
+      outline-offset: 2px;
+    }
+    .shell { max-width: 1460px; margin: 0 auto; padding: 26px; }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 28px;
+      align-items: flex-end;
+      padding: 28px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #113d31, #176b4d 58%, #35795e);
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+    .eyebrow { margin: 0 0 8px; font-size: 12px; letter-spacing: .15em; opacity: .72; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 42px); line-height: 1.12; }
+    .hero p { margin: 12px 0 0; color: rgba(255,255,255,.74); }
+    .controls { display: flex; flex-wrap: wrap; gap: 9px; justify-content: flex-end; }
+    .controls input, .controls select, .controls button {
+      min-height: 42px;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 10px;
+      padding: 9px 12px;
+    }
+    .controls input, .controls select { background: rgba(255,255,255,.12); color: #fff; }
+    .controls input::placeholder { color: rgba(255,255,255,.62); }
+    .controls select option { color: var(--ink); }
+    .controls button { border: 0; background: #fff; color: var(--primary); cursor: pointer; font-weight: 700; }
+    .status-line { min-height: 22px; margin: 12px 4px 0; color: var(--muted); font-size: 13px; }
+    .status-line.error { color: var(--danger); }
+    .summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .card, .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card { min-height: 118px; padding: 18px; }
+    .card .label { color: var(--muted); font-size: 13px; }
+    .card .value { margin-top: 9px; font-size: clamp(27px, 3vw, 38px); font-weight: 760; letter-spacing: -.03em; }
+    .card .note { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-top: 16px; }
+    .panel { padding: 20px; min-width: 0; }
+    .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+    h2 { margin: 0; font-size: 18px; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .pipeline { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+    .stage { position: relative; min-height: 94px; padding: 14px 12px; background: var(--surface-soft); border-radius: 13px; }
+    .stage:not(:last-child)::after {
+      content: "›";
+      position: absolute;
+      right: -7px;
+      top: 34px;
+      z-index: 2;
+      color: var(--primary);
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .stage strong { display: block; margin-top: 9px; font-size: 21px; }
+    .stage span { color: var(--muted); font-size: 12px; }
+    .bars { display: grid; gap: 11px; }
+    .bar-row { display: grid; grid-template-columns: minmax(90px, 145px) 1fr 64px; gap: 10px; align-items: center; }
+    .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .track { height: 11px; overflow: hidden; border-radius: 999px; background: var(--surface-soft); }
+    .fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--primary), #66a889); transition: width .5s ease; }
+    .bar-value { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+    .table-wrap { overflow: auto; max-height: 420px; border: 1px solid var(--line); border-radius: 13px; }
+    table { width: 100%; border-collapse: collapse; min-width: 880px; }
+    th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; vertical-align: top; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--surface-soft); color: var(--muted); font-weight: 650; }
+    tbody tr:hover { background: #f8fbf9; }
+    .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+    .badge { display: inline-flex; border-radius: 999px; padding: 4px 8px; background: var(--primary-soft); color: var(--primary); font-size: 11px; }
+    .badge.warning { background: var(--warning-soft); color: var(--warning); }
+    .quality { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .quality-item { padding: 14px; border-radius: 13px; background: var(--surface-soft); }
+    .quality-item strong { display: block; margin-top: 5px; font-size: 22px; }
+    .evidence-list { display: grid; gap: 10px; }
+    details { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+    summary { cursor: pointer; font-size: 13px; font-weight: 650; }
+    .evidence-text { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
+    .empty { padding: 34px; text-align: center; color: var(--muted); background: var(--surface-soft); border-radius: 12px; }
+    footer { padding: 20px 4px 8px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 1100px) {
+      .summary { grid-template-columns: repeat(3, 1fr); }
+      .grid { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: repeat(4, 1fr); }
+      .stage:nth-child(4)::after { display: none; }
+    }
+    @media (max-width: 680px) {
+      .shell { padding: 12px; }
+      .hero { padding: 20px; align-items: stretch; flex-direction: column; }
+      .controls { justify-content: stretch; }
+      .controls > * { flex: 1 1 100%; }
+      .summary { grid-template-columns: repeat(2, 1fr); }
+      .pipeline { grid-template-columns: repeat(2, 1fr); }
+      .stage:nth-child(even)::after { display: none; }
+      .bar-row { grid-template-columns: 92px 1fr 48px; }
+      .quality { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">PHARMA ANALYST · DATA LAYER</p>
+        <h1>医药投研数据处理看板</h1>
+        <p>从中国大陆权威来源到可追溯主张，查看解析、实体、关系、复核与许可状态。</p>
+      </div>
+      <form class="controls" id="controls">
+        <select id="access" aria-label="访问范围">
+          <option value="public">公开数据</option>
+          <option value="team_internal">团队内部</option>
+          <option value="restricted">受限数据</option>
+        </select>
+        <input id="api-key" type="password" autocomplete="off" placeholder="内部 API Key">
+        <button type="submit">刷新数据</button>
+      </form>
+    </section>
+    <div class="status-line" id="status" role="status">正在读取数据……</div>
+
+    <section class="summary" id="summary" aria-label="数据层核心指标"></section>
+
+    <section class="panel" style="margin-top:16px">
+      <div class="panel-head"><h2>处理链路</h2><span class="hint">当前文档版本；历史版本仅计入版本、任务与运行统计</span></div>
+      <div class="pipeline" id="pipeline"></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><h2>文档解析结果</h2><span class="hint">元素数量 / 平均置信度</span></div>
+        <div class="bars" id="element-bars"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>实体提及分布</h2><span class="hint">已链接到规范实体</span></div>
+        <div class="bars" id="entity-bars"></div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><h2>关系主张</h2><span class="hint">Candidate 不会直接投影为正式图谱边</span></div>
+        <div class="bars" id="predicate-bars"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>质量与治理</h2><span class="hint">许可与人工复核边界</span></div>
+        <div class="quality" id="quality"></div>
+        <div class="bars" id="job-bars"></div>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top:16px">
+      <div class="panel-head"><h2>已处理文档</h2><span class="hint">按解析元素数量排序</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>文档</th><th>来源</th><th>类型</th><th>许可 / 权限</th><th class="numeric">元素</th><th class="numeric">实体提及</th><th class="numeric">关系</th></tr></thead>
+          <tbody id="documents"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:16px">
+      <div class="panel-head"><h2>主张—证据链样例</h2><span class="hint">展开查看原文片段、文档和页码</span></div>
+      <div class="evidence-list" id="evidence"></div>
+    </section>
+    <footer>数据不等于已确认事实：Candidate 主张必须经过人工复核后才能进入 Gold 层或正式知识图谱。</footer>
+  </main>
+  <script>
+    const fmt = new Intl.NumberFormat('zh-CN');
+    const $ = (id) => document.getElementById(id);
+
+    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+    function renderSummary(data) {
+      const items = [
+        ['权威来源', data.sources, '中国大陆来源'],
+        ['当前文档', data.documents, `${data.versions} 个内容版本`],
+        ['解析元素', data.elements, '标题、段落、表格等'],
+        ['规范实体', data.entities, `${fmt.format(data.mentions)} 次提及`],
+        ['关系主张', data.assertions, `${fmt.format(data.evidence)} 条证据`],
+        ['待处理冲突', data.conflicts, `实体链接率 ${(data.entity_link_rate * 100).toFixed(1)}%`]
+      ];
+      clear($('summary'));
+      items.forEach(([label, value, note]) => {
+        const card = el('article', 'card');
+        card.append(el('div', 'label', label), el('div', 'value', fmt.format(value)), el('div', 'note', note));
+        $('summary').append(card);
+      });
+    }
+    function renderPipeline(items) {
+      clear($('pipeline'));
+      items.forEach((item) => {
+        const stage = el('div', 'stage');
+        stage.append(el('span', '', item.label), el('strong', '', fmt.format(item.value)));
+        $('pipeline').append(stage);
+      });
+    }
+    function renderBars(target, items, note) {
+      const host = $(target); clear(host);
+      if (!items.length) { host.append(el('div', 'empty', '当前范围暂无数据')); return; }
+      const max = Math.max(...items.map((item) => Number(item.value) || 0), 1);
+      items.forEach((item) => {
+        const row = el('div', 'bar-row');
+        const label = el('div', 'bar-label', item.label);
+        label.title = item.label;
+        const track = el('div', 'track');
+        const fill = el('div', 'fill');
+        fill.style.width = `${Math.max(1.5, Number(item.value) / max * 100)}%`;
+        track.append(fill);
+        const suffix = note(item);
+        row.append(label, track, el('div', 'bar-value', `${fmt.format(item.value)}${suffix}`));
+        host.append(row);
+      });
+    }
+    function renderQuality(data) {
+      const host = $('quality'); clear(host);
+      const candidate = data.assertion_reviews.find((item) => item.label === 'candidate')?.value || 0;
+      const license = data.licenses.map((item) => item.label).join('、') || '无';
+      const items = [
+        ['证据覆盖率', `${(data.summary.assertion_evidence_rate * 100).toFixed(1)}%`],
+        ['候选主张', fmt.format(candidate)],
+        ['许可状态', license]
+      ];
+      items.forEach(([label, value]) => {
+        const box = el('div', 'quality-item');
+        box.append(el('span', 'hint', label), el('strong', '', value));
+        host.append(box);
+      });
+    }
+    function renderDocuments(items) {
+      const host = $('documents'); clear(host);
+      items.forEach((item) => {
+        const row = document.createElement('tr');
+        const title = document.createElement('td');
+        title.append(el('strong', '', item.title));
+        const source = el('td', '', item.source);
+        const type = el('td', '', item.document_type);
+        const access = document.createElement('td');
+        access.append(el('span', 'badge', item.license_status), document.createTextNode(' '), el('span', 'badge warning', item.access_class));
+        row.append(title, source, type, access, el('td', 'numeric', fmt.format(item.elements)), el('td', 'numeric', fmt.format(item.mentions)), el('td', 'numeric', fmt.format(item.assertions)));
+        host.append(row);
+      });
+    }
+    function renderEvidence(items) {
+      const host = $('evidence'); clear(host);
+      if (!items.length) { host.append(el('div', 'empty', '当前范围暂无可见关系证据')); return; }
+      items.forEach((item) => {
+        const details = document.createElement('details');
+        const title = `${item.subject} · ${item.predicate} · 置信度 ${Number(item.confidence).toFixed(2)}`;
+        details.append(el('summary', '', title));
+        const meta = el('div', 'hint', `${item.document}${item.page_number ? ` · 第 ${item.page_number} 页` : ''} · ${item.review_status}`);
+        details.append(meta, el('p', 'evidence-text', item.evidence));
+        host.append(details);
+      });
+    }
+    function render(data) {
+      renderSummary(data.summary);
+      renderPipeline(data.pipeline);
+      renderBars('element-bars', data.element_types, (item) => ` · ${Number(item.confidence || 0).toFixed(2)}`);
+      renderBars('entity-bars', data.entity_types, (item) => ` · ${fmt.format(item.linked || 0)}`);
+      renderBars('predicate-bars', data.predicates, (item) => ` · ${Number(item.confidence || 0).toFixed(2)}`);
+      renderBars('job-bars', data.jobs, () => '');
+      renderQuality(data);
+      renderDocuments(data.documents);
+      renderEvidence(data.evidence_examples);
+    }
+    async function loadData(event) {
+      if (event) event.preventDefault();
+      const access = $('access').value;
+      const key = $('api-key').value.trim();
+      const headers = key ? {'X-Internal-API-Key': key} : {};
+      $('status').classList.remove('error');
+      $('status').textContent = '正在读取数据……';
+      try {
+        const response = await fetch(`/v1/visualizations/data-layer?caller_access=${encodeURIComponent(access)}`, {headers});
+        if (!response.ok) throw new Error(response.status === 403 ? '内部范围需要有效的 INTERNAL_API_KEY。' : `接口返回 ${response.status}`);
+        const data = await response.json();
+        render(data);
+        $('status').textContent = `已更新 · ${new Date(data.generated_at).toLocaleString('zh-CN')} · 范围：${data.scope.access_classes.join(' / ')}`;
+      } catch (error) {
+        $('status').classList.add('error');
+        $('status').textContent = `读取失败：${error.message}`;
+      }
+    }
+    $('controls').addEventListener('submit', loadData);
+    loadData();
+  </script>
+</body>
+</html>

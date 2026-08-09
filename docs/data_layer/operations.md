@@ -111,6 +111,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 - REST 文档：`http://127.0.0.1:8000/docs`；
 - GraphQL：`http://127.0.0.1:8000/graphql`；
+- 数据层看板：`http://127.0.0.1:8000/demo/data-layer`；
 - Neo4j：`http://127.0.0.1:7474`；
 - Elasticsearch：`http://127.0.0.1:9200`。
 
