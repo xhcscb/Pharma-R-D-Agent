@@ -114,12 +114,69 @@
     summary { cursor: pointer; font-size: 13px; font-weight: 650; }
     .evidence-text { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
     .empty { padding: 34px; text-align: center; color: var(--muted); background: var(--surface-soft); border-radius: 12px; }
+    .graph-heading, .extraction-heading { align-items: center; }
+    .graph-heading h2, .extraction-heading h2 { margin-bottom: 5px; }
+    .graph-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .graph-controls select, .extraction-heading select {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 10px;
+      color: var(--ink);
+      background: var(--surface);
+    }
+    .graph-controls label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+    .graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 14px; }
+    .graph-canvas { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: radial-gradient(circle at 50% 45%, var(--surface), var(--surface-soft)); }
+    #relation-graph { display: block; width: 100%; min-height: 480px; }
+    .graph-edge { stroke: #8fa39a; stroke-opacity: .45; fill: none; }
+    .graph-edge.is-selected { stroke: var(--warning); stroke-opacity: 1; }
+    .graph-edge-hit { stroke: transparent; fill: none; cursor: pointer; }
+    .graph-node { cursor: pointer; }
+    .graph-node circle { stroke: var(--surface); stroke-width: 3; }
+    .graph-node.is-selected circle { stroke: var(--warning); stroke-width: 5; }
+    .graph-node text { fill: var(--ink); font-size: 12px; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+    .graph-node.Company circle { fill: #2b6f91; }
+    .graph-node.Drug circle { fill: #1d805a; }
+    .graph-node.Target circle { fill: #a36516; }
+    .graph-node.Indication circle { fill: #8a4f92; }
+    .graph-node.FinancialMetric circle { fill: #44636f; }
+    .graph-node.MetricValue circle { fill: #9a7770; }
+    .graph-legend { display: flex; flex-wrap: wrap; gap: 11px; padding: 0 14px 13px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; }
+    .legend-item i { width: 9px; height: 9px; border-radius: 50%; background: var(--legend-color); }
+    .graph-detail { min-height: 480px; padding: 17px; border-radius: 14px; background: var(--surface-soft); overflow-wrap: anywhere; }
+    .graph-detail > strong { display: block; margin-bottom: 7px; font-size: 16px; }
+    .graph-detail p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .graph-detail dl { margin: 14px 0; }
+    .graph-detail dt { margin-top: 10px; color: var(--muted); font-size: 11px; }
+    .graph-detail dd { margin: 3px 0 0; font-size: 13px; }
+    .graph-detail blockquote { margin: 13px 0 0; padding: 11px; border-left: 3px solid var(--warning); background: var(--warning-soft); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
+    .extraction-flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+    .extraction-step { position: relative; min-width: 0; min-height: 72px; padding: 12px; border-radius: 11px; background: var(--surface-soft); }
+    .extraction-step:not(:last-child)::after { content: "›"; position: absolute; right: -7px; top: 22px; z-index: 2; color: var(--primary); font-size: 22px; }
+    .extraction-step span { display: block; color: var(--muted); font-size: 11px; }
+    .extraction-step strong { display: block; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+    .extraction-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(290px, .65fr); gap: 14px; }
+    .document-preview { min-width: 0; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; }
+    .document-preview-head { display: flex; justify-content: space-between; gap: 12px; padding: 11px 13px; background: var(--surface-soft); font-size: 12px; }
+    .document-preview-head span { color: var(--muted); }
+    .extracted-text { min-height: 330px; max-height: 520px; overflow: auto; padding: 18px; background: var(--surface); white-space: pre-wrap; font-family: "Cascadia Mono", "Microsoft YaHei", monospace; font-size: 13px; line-height: 1.85; }
+    .extracted-text mark { border-radius: 4px; padding: 1px 2px; color: var(--ink); background: #ffe29b; box-shadow: 0 0 0 2px rgba(154,100,18,.14); }
+    .mention-list { display: grid; align-content: start; gap: 8px; max-height: 570px; overflow: auto; }
+    .mention-button { width: 100%; border: 1px solid var(--line); border-radius: 11px; padding: 11px; color: var(--ink); background: var(--surface); cursor: pointer; text-align: left; }
+    .mention-button:hover, .mention-button.is-selected { border-color: var(--primary); background: var(--primary-soft); }
+    .mention-button strong, .mention-button span { display: block; }
+    .mention-button strong { font-size: 13px; }
+    .mention-button span { margin-top: 4px; color: var(--muted); font-size: 11px; }
     footer { padding: 20px 4px 8px; color: var(--muted); font-size: 12px; }
     @media (max-width: 1100px) {
       .summary { grid-template-columns: repeat(3, 1fr); }
       .grid { grid-template-columns: 1fr; }
       .pipeline { grid-template-columns: repeat(4, 1fr); }
       .stage:nth-child(4)::after { display: none; }
+      .graph-layout, .extraction-layout { grid-template-columns: 1fr; }
+      .graph-detail { min-height: auto; }
     }
     @media (max-width: 680px) {
       .shell { padding: 12px; }
@@ -131,6 +188,9 @@
       .stage:nth-child(even)::after { display: none; }
       .bar-row { grid-template-columns: 92px 1fr 48px; }
       .quality { grid-template-columns: 1fr; }
+      .extraction-flow { grid-template-columns: repeat(2, 1fr); }
+      .extraction-step:nth-child(even)::after { display: none; }
+      #relation-graph { min-height: 380px; }
     }
   </style>
 </head>
@@ -159,6 +219,47 @@
     <section class="panel" style="margin-top:16px">
       <div class="panel-head"><h2>处理链路</h2><span class="hint">当前文档版本；历史版本仅计入版本、任务与运行统计</span></div>
       <div class="pipeline" id="pipeline"></div>
+    </section>
+
+    <section class="panel graph-panel" style="margin-top:16px">
+      <div class="panel-head graph-heading">
+        <div>
+          <h2>候选实体关系图</h2>
+          <span class="hint">单击节点或关系查看类型、置信度、PDF 页码和原文证据；图中边尚未经过人工批准。</span>
+        </div>
+        <div class="graph-controls">
+          <select id="relation-filter" aria-label="关系类型筛选"><option value="all">全部关系</option></select>
+          <label><input id="hide-self-relations" type="checkbox" checked> 隐藏自环关系</label>
+        </div>
+      </div>
+      <div class="graph-layout">
+        <div class="graph-canvas">
+          <svg id="relation-graph" viewBox="0 0 960 520" role="img" aria-label="实体候选关系网络图"></svg>
+          <div class="graph-legend" id="graph-legend"></div>
+        </div>
+        <aside class="graph-detail" id="graph-detail">
+          <strong>选择图中的节点或关系</strong>
+          <p>节点大小表示当前文档中的提及次数；边宽表示同一候选关系的证据记录数量。</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:16px">
+      <div class="panel-head extraction-heading">
+        <div>
+          <h2>实体抽取与字符定位</h2>
+          <span class="hint" id="extraction-source">从实际 PDF 表格元素中显示实体类型、规范名称、字符区间和链接状态。</span>
+        </div>
+        <select id="entity-type-filter" aria-label="实体类型筛选"></select>
+      </div>
+      <div class="extraction-flow" id="extraction-flow"></div>
+      <div class="extraction-layout">
+        <div class="document-preview">
+          <div class="document-preview-head"><strong id="element-label">文档元素</strong><span id="element-meta"></span></div>
+          <div class="extracted-text" id="extracted-text"></div>
+        </div>
+        <div class="mention-list" id="mention-list"></div>
+      </div>
     </section>
 
     <div class="grid">
@@ -203,6 +304,10 @@
   <script>
     const fmt = new Intl.NumberFormat('zh-CN');
     const $ = (id) => document.getElementById(id);
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    let currentGraph = {nodes: [], edges: []};
+    let currentExtraction = null;
+    let selectedGraphItem = null;
 
     function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function el(tag, className, text) {
@@ -293,6 +398,182 @@
         host.append(details);
       });
     }
+    function svgEl(tag, attributes = {}) {
+      const node = document.createElementNS(SVG_NS, tag);
+      Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+      return node;
+    }
+    function graphNodeColor(type) {
+      return {
+        Company: '#2b6f91', Drug: '#1d805a', Target: '#a36516',
+        Indication: '#8a4f92', FinancialMetric: '#44636f', MetricValue: '#9a7770'
+      }[type] || '#65756d';
+    }
+    function renderGraphDetail(item, nodeMap) {
+      const host = $('graph-detail'); clear(host);
+      if (!item) {
+        host.append(el('strong', '', '选择图中的节点或关系'));
+        host.append(el('p', '', '节点大小表示当前文档中的提及次数；边宽表示同一候选关系的证据记录数量。'));
+        return;
+      }
+      if (item.kind === 'node') {
+        const node = item.value;
+        host.append(el('strong', '', node.label), el('span', 'badge', node.type));
+        const dl = document.createElement('dl');
+        const rows = [['规范实体 ID', node.entity_id || '数值节点'], ['当前提及次数', fmt.format(node.mentions)], ['图中连接数', fmt.format(item.degree)]];
+        rows.forEach(([label, value]) => { dl.append(el('dt', '', label), el('dd', '', value)); });
+        host.append(dl, el('p', '', '这是规范实体或主张数值节点。单击相连的关系线可继续回溯到 PDF 页码和原文证据。'));
+        return;
+      }
+      const edge = item.value;
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+      host.append(el('strong', '', `${source?.label || edge.source} → ${target?.label || edge.target}`), el('span', 'badge warning', edge.review_status));
+      const dl = document.createElement('dl');
+      const rows = [
+        ['关系类型', edge.predicate], ['合并证据数量', fmt.format(edge.count)],
+        ['自动置信度', Number(edge.confidence).toFixed(3)], ['原文位置', edge.page_number ? `PDF 第 ${edge.page_number} 页` : '未提供页码'],
+        ['来源文档', edge.document_title]
+      ];
+      rows.forEach(([label, value]) => { dl.append(el('dt', '', label), el('dd', '', value)); });
+      host.append(dl);
+      const quote = document.createElement('blockquote'); quote.textContent = edge.evidence; host.append(quote);
+    }
+    function renderRelationGraph() {
+      const svg = $('relation-graph'); clear(svg);
+      const relation = $('relation-filter').value;
+      const hideSelf = $('hide-self-relations').checked;
+      const edges = currentGraph.edges.filter((edge) => (relation === 'all' || edge.predicate === relation) && (!hideSelf || !edge.is_self));
+      const visibleIds = new Set(edges.flatMap((edge) => [edge.source, edge.target]));
+      const nodes = currentGraph.nodes.filter((node) => visibleIds.has(node.id));
+      const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+      const degrees = new Map(nodes.map((node) => [node.id, 0]));
+      edges.forEach((edge) => { degrees.set(edge.source, (degrees.get(edge.source) || 0) + edge.count); degrees.set(edge.target, (degrees.get(edge.target) || 0) + edge.count); });
+
+      const types = [...new Set(nodes.map((node) => node.type))];
+      const preferred = ['Company', 'Drug', 'Target', 'Indication', 'FinancialMetric', 'MetricValue'];
+      types.sort((a, b) => preferred.indexOf(a) - preferred.indexOf(b));
+      const positions = new Map();
+      types.forEach((type, column) => {
+        const group = nodes.filter((node) => node.type === type).sort((a, b) => b.mentions - a.mentions);
+        const x = types.length === 1 ? 480 : 90 + column * (780 / Math.max(types.length - 1, 1));
+        group.forEach((node, index) => {
+          const y = group.length === 1 ? 260 : 55 + index * (410 / Math.max(group.length - 1, 1));
+          positions.set(node.id, {x, y});
+        });
+      });
+
+      const defs = svgEl('defs');
+      const marker = svgEl('marker', {id:'graph-arrow', viewBox:'0 0 10 10', refX:9, refY:5, markerWidth:6, markerHeight:6, orient:'auto-start-reverse'});
+      marker.append(svgEl('path', {d:'M 0 0 L 10 5 L 0 10 z', fill:'#8fa39a'})); defs.append(marker); svg.append(defs);
+
+      edges.forEach((edge) => {
+        const start = positions.get(edge.source); const end = positions.get(edge.target);
+        if (!start || !end) return;
+        const selected = selectedGraphItem?.kind === 'edge' && selectedGraphItem.value.id === edge.id;
+        const width = 1 + Math.log2(Number(edge.count) + 1);
+        let shape;
+        let hit;
+        if (edge.is_self) {
+          const radius = 24;
+          const path = `M ${start.x} ${start.y - 8} C ${start.x + 42} ${start.y - 54}, ${start.x + 42} ${start.y + 54}, ${start.x} ${start.y + 8}`;
+          shape = svgEl('path', {d:path, class:`graph-edge${selected ? ' is-selected' : ''}`, 'stroke-width':width, 'marker-end':'url(#graph-arrow)'});
+          hit = svgEl('path', {d:path, class:'graph-edge-hit', 'stroke-width':radius});
+        } else {
+          shape = svgEl('line', {x1:start.x, y1:start.y, x2:end.x, y2:end.y, class:`graph-edge${selected ? ' is-selected' : ''}`, 'stroke-width':width, 'marker-end':'url(#graph-arrow)'});
+          hit = svgEl('line', {x1:start.x, y1:start.y, x2:end.x, y2:end.y, class:'graph-edge-hit', 'stroke-width':14});
+        }
+        const title = svgEl('title'); title.textContent = `${edge.predicate} · ${edge.count} 条 · ${edge.review_status}`; hit.append(title);
+        hit.addEventListener('click', () => { selectedGraphItem = {kind:'edge', value:edge}; renderRelationGraph(); renderGraphDetail(selectedGraphItem, nodeMap); });
+        svg.append(shape, hit);
+      });
+
+      nodes.forEach((node) => {
+        const point = positions.get(node.id); if (!point) return;
+        const degree = degrees.get(node.id) || 0;
+        const radius = Math.min(22, 7 + Math.log2(Number(node.mentions) + 1) * 2.2);
+        const group = svgEl('g', {class:`graph-node ${node.type}${selectedGraphItem?.kind === 'node' && selectedGraphItem.value.id === node.id ? ' is-selected' : ''}`, transform:`translate(${point.x} ${point.y})`});
+        group.append(svgEl('circle', {r:radius}));
+        if (degree > 1 || nodes.length < 12) {
+          const rightSide = point.x > 820;
+          const label = svgEl('text', {x:rightSide ? -(radius + 6) : radius + 6, y:4, 'text-anchor':rightSide ? 'end' : 'start'}); label.textContent = node.label.length > 11 ? `${node.label.slice(0, 11)}…` : node.label; group.append(label);
+        }
+        const title = svgEl('title'); title.textContent = `${node.label} · ${node.type} · ${node.mentions} 次提及`; group.append(title);
+        group.addEventListener('click', () => { selectedGraphItem = {kind:'node', value:node, degree}; renderRelationGraph(); renderGraphDetail(selectedGraphItem, nodeMap); });
+        svg.append(group);
+      });
+      if (!nodes.length) {
+        const empty = svgEl('text', {x:480, y:260, 'text-anchor':'middle', fill:'#64756d'}); empty.textContent = '当前筛选条件下没有关系'; svg.append(empty);
+      }
+      renderGraphDetail(selectedGraphItem, nodeMap);
+    }
+    function renderGraph(data) {
+      currentGraph = data || {nodes: [], edges: []}; selectedGraphItem = null;
+      const filter = $('relation-filter'); clear(filter); filter.append(new Option('全部关系', 'all'));
+      [...new Set(currentGraph.edges.map((edge) => edge.predicate))].sort().forEach((value) => filter.append(new Option(value, value)));
+      const legend = $('graph-legend'); clear(legend);
+      [...new Set(currentGraph.nodes.map((node) => node.type))].forEach((type) => {
+        const item = el('span', 'legend-item');
+        const dot = document.createElement('i'); dot.style.setProperty('--legend-color', graphNodeColor(type));
+        item.append(dot, document.createTextNode(type)); legend.append(item);
+      });
+      renderRelationGraph();
+    }
+    function nonOverlappingMentions(mentions) {
+      const result = []; let cursor = -1;
+      [...mentions].sort((a, b) => a.char_start - b.char_start || a.char_end - b.char_end).forEach((mention) => {
+        if (mention.char_start >= cursor) { result.push(mention); cursor = mention.char_end; }
+      });
+      return result;
+    }
+    function renderEntityText(example, mentions, selected) {
+      const host = $('extracted-text'); clear(host);
+      if (!mentions.length) { host.append(el('div', 'empty', '该类型没有可显示的实体')); return; }
+      const focus = selected || mentions[0];
+      const start = Math.max(0, focus.char_start - 260); const end = Math.min(example.text.length, focus.char_end + 1500);
+      const visible = nonOverlappingMentions(mentions.filter((item) => item.char_end > start && item.char_start < end));
+      let cursor = start;
+      if (start > 0) host.append(document.createTextNode('……'));
+      visible.forEach((mention) => {
+        const left = Math.max(cursor, mention.char_start); const right = Math.min(end, mention.char_end);
+        if (left > cursor) host.append(document.createTextNode(example.text.slice(cursor, left)));
+        const mark = document.createElement('mark'); mark.textContent = example.text.slice(left, right); mark.dataset.mentionId = mention.id; host.append(mark); cursor = right;
+      });
+      if (cursor < end) host.append(document.createTextNode(example.text.slice(cursor, end)));
+      if (end < example.text.length) host.append(document.createTextNode('……'));
+      const activeMark = host.querySelector(`mark[data-mention-id="${focus.id}"]`);
+      if (activeMark) host.scrollTop = Math.max(0, activeMark.offsetTop - host.offsetTop - 120);
+    }
+    function renderMentionList(example, type, selectedId) {
+      const mentions = example.mentions.filter((item) => item.type === type);
+      const host = $('mention-list'); clear(host);
+      if (!mentions.length) { host.append(el('div', 'empty', '该类型没有可显示的实体')); return; }
+      const selected = mentions.find((item) => item.id === selectedId) || mentions[0];
+      mentions.forEach((mention) => {
+        const button = el('button', `mention-button${mention.id === selected.id ? ' is-selected' : ''}`);
+        button.type = 'button';
+        button.append(el('strong', '', `${mention.text} → ${mention.normalized_name}`), el('span', '', `${mention.type} · 字符 ${mention.char_start}–${mention.char_end} · 置信度 ${Number(mention.confidence).toFixed(3)} · ${mention.link_status}`));
+        button.addEventListener('click', () => { renderMentionList(example, type, mention.id); renderEntityText(example, mentions, mention); });
+        host.append(button);
+      });
+      renderEntityText(example, mentions, selected);
+    }
+    function renderEntityExtraction(example) {
+      currentExtraction = example;
+      const flow = $('extraction-flow'); clear(flow);
+      if (!example) {
+        flow.append(el('div', 'empty', '当前范围暂无可显示的字符级实体抽取样例'));
+        clear($('extracted-text')); clear($('mention-list')); return;
+      }
+      const steps = [['文档', example.document_title], ['页面', `PDF 第 ${example.page_number} 页`], ['元素', `${example.element_type} · ${example.parser_name}`], ['实体提及', `${example.mention_count} 个`], ['规范链接', `${example.entity_type_count} 类实体`]];
+      steps.forEach(([label, value]) => { const step = el('div', 'extraction-step'); step.append(el('span', '', label), el('strong', '', value)); flow.append(step); });
+      $('element-label').textContent = `${example.element_type} 元素 · 第 ${example.page_number} 页`;
+      $('element-meta').textContent = `bbox ${Object.values(example.bbox || {}).map((value) => Number(value).toFixed(1)).join(', ')} · 解析置信度 ${Number(example.parser_confidence).toFixed(2)}`;
+      const types = [...new Set(example.mentions.map((item) => item.type))];
+      const filter = $('entity-type-filter'); clear(filter); types.forEach((type) => filter.append(new Option(type, type)));
+      const preferred = types.includes('Drug') ? 'Drug' : types[0]; filter.value = preferred;
+      renderMentionList(example, preferred, null);
+    }
     function render(data) {
       renderSummary(data.summary);
       renderPipeline(data.pipeline);
@@ -303,6 +584,8 @@
       renderQuality(data);
       renderDocuments(data.documents);
       renderEvidence(data.evidence_examples);
+      renderGraph(data.relation_graph);
+      renderEntityExtraction(data.entity_extraction_example);
     }
     async function loadData(event) {
       if (event) event.preventDefault();
@@ -323,6 +606,9 @@
       }
     }
     $('controls').addEventListener('submit', loadData);
+    $('relation-filter').addEventListener('change', () => { selectedGraphItem = null; renderRelationGraph(); });
+    $('hide-self-relations').addEventListener('change', () => { selectedGraphItem = null; renderRelationGraph(); });
+    $('entity-type-filter').addEventListener('change', (event) => { if (currentExtraction) renderMentionList(currentExtraction, event.target.value, null); });
     loadData();
   </script>
 </body>

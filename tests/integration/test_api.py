@@ -70,6 +70,8 @@ def test_rest_and_graphql_expose_public_document(monkeypatch, tmp_path) -> None:
         assert overview.json()["summary"]["sources"] == 1
         assert overview.json()["summary"]["documents"] == 1
         assert overview.json()["documents"][0]["title"] == "Official API fixture"
+        assert overview.json()["relation_graph"]["nodes"] == []
+        assert overview.json()["entity_extraction_example"] is None
 
     get_engine.cache_clear()
     get_settings.cache_clear()

@@ -18,6 +18,10 @@ from pharma_data.storage.canonical.models import (
     SourceRecord,
     SourceRegistry,
 )
+from pharma_data.visualization.graph import (
+    build_entity_extraction_example,
+    build_relation_graph,
+)
 
 
 def _count(session: Session, statement: Any) -> int:
@@ -386,4 +390,8 @@ def build_data_layer_overview(
             for row in visible_conflicts
         ],
         "evidence_examples": evidence_examples,
+        "relation_graph": build_relation_graph(session, allowed_access_classes),
+        "entity_extraction_example": build_entity_extraction_example(
+            session, allowed_access_classes
+        ),
     }
