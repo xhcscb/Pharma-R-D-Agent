@@ -139,6 +139,52 @@ class DocumentVersion(Base, TimestampMixin):
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict)
 
 
+class DocumentAccessGrantRecord(Base, TimestampMixin):
+    """Independent authorization for a content-addressed document version."""
+
+    __tablename__ = "document_access_grant"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_version_id", "access_class", name="uq_version_access_grant"
+        ),
+        Index("ix_access_grant_class_active", "access_class", "active"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    document_version_id: Mapped[str] = mapped_column(
+        ForeignKey("document_version.id", ondelete="CASCADE"), nullable=False
+    )
+    source_record_id: Mapped[str | None] = mapped_column(
+        ForeignKey("source_record.id", ondelete="SET NULL")
+    )
+    access_class: Mapped[str] = mapped_column(String(40), nullable=False)
+    license_status: Mapped[str] = mapped_column(String(40), nullable=False)
+    provenance_status: Mapped[str] = mapped_column(
+        String(80), default="unverified", nullable=False
+    )
+    authorization_reference: Mapped[str | None] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict)
+
+
+class MineruBackendRecord(Base, TimestampMixin):
+    __tablename__ = "mineru_backend"
+
+    id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    endpoint: Mapped[str] = mapped_column(Text, nullable=False)
+    backend: Mapped[str] = mapped_column(String(80), nullable=False)
+    capabilities: Mapped[list[str]] = mapped_column(JSON_TYPE, default=list)
+    model_name: Mapped[str | None] = mapped_column(String(200))
+    model_version: Mapped[str | None] = mapped_column(String(120))
+    priority: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    max_concurrency: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    health_status: Mapped[str] = mapped_column(String(40), default="unknown", nullable=False)
+    allowed_access_classes: Mapped[list[str]] = mapped_column(JSON_TYPE, default=list)
+    tls_required: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_health_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict)
+
+
 class ProcessingJob(Base, TimestampMixin):
     __tablename__ = "processing_job"
     __table_args__ = (
@@ -211,6 +257,100 @@ class DocumentElementRecord(Base):
     parser_version: Mapped[str] = mapped_column(String(80), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class ParseCandidateRecord(Base, TimestampMixin):
+    __tablename__ = "parse_candidate"
+    __table_args__ = (
+        Index("ix_parse_candidate_version_page", "document_version_id", "page_number"),
+        Index("ix_parse_candidate_run_selected", "parse_run_id", "selected"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    document_version_id: Mapped[str] = mapped_column(
+        ForeignKey("document_version.id", ondelete="CASCADE"), nullable=False
+    )
+    parse_run_id: Mapped[str] = mapped_column(
+        ForeignKey("processing_run.id", ondelete="CASCADE"), nullable=False
+    )
+    page_number: Mapped[int | None] = mapped_column(Integer)
+    region_key: Mapped[str | None] = mapped_column(String(160))
+    backend_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    backend_version: Mapped[str | None] = mapped_column(String(120))
+    node_id: Mapped[str | None] = mapped_column(String(120))
+    selected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    status: Mapped[str] = mapped_column(String(40), nullable=False)
+    score: Mapped[float | None] = mapped_column(Float)
+    diagnostics: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict)
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict)
+    raw_output_path: Mapped[str | None] = mapped_column(Text)
+    raw_output_hash: Mapped[str | None] = mapped_column(String(64))
+
+
+class CharacterSpanRecord(Base):
+    __tablename__ = "character_span"
+    __table_args__ = (
+        UniqueConstraint("element_id", "char_start", "char_end", name="uq_element_span"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    element_id: Mapped[str] = mapped_column(
+        ForeignKey("document_element.id", ondelete="CASCADE"), nullable=False
+    )
+    char_start: Mapped[int] = mapped_column(Integer, nullable=False)
+    char_end: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    bbox: Mapped[dict[str, float] | None] = mapped_column(JSON_TYPE)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class TableCellRecord(Base):
+    __tablename__ = "table_cell"
+    __table_args__ = (
+        UniqueConstraint("element_id", "row_index", "column_index", name="uq_table_cell"),
+        Index("ix_table_cell_period", "period_end"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    element_id: Mapped[str] = mapped_column(
+        ForeignKey("document_element.id", ondelete="CASCADE"), nullable=False
+    )
+    row_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    column_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    row_span: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    column_span: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    bbox: Mapped[dict[str, float] | None] = mapped_column(JSON_TYPE)
+    header_path: Mapped[list[str]] = mapped_column(JSON_TYPE, default=list)
+    normalized_value: Mapped[str | None] = mapped_column(Text)
+    numeric_value: Mapped[Any | None] = mapped_column(Numeric(38, 12))
+    unit: Mapped[str | None] = mapped_column(String(80))
+    currency: Mapped[str | None] = mapped_column(String(20))
+    scale: Mapped[str | None] = mapped_column(String(40))
+    period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class ParseReviewItemRecord(Base, TimestampMixin):
+    __tablename__ = "parse_review_item"
+    __table_args__ = (
+        Index("ix_parse_review_open", "status", "document_version_id", "page_number"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    document_version_id: Mapped[str] = mapped_column(
+        ForeignKey("document_version.id", ondelete="CASCADE"), nullable=False
+    )
+    parse_run_id: Mapped[str] = mapped_column(
+        ForeignKey("processing_run.id", ondelete="CASCADE"), nullable=False
+    )
+    page_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    region_key: Mapped[str | None] = mapped_column(String(160))
+    gate_code: Mapped[str] = mapped_column(String(80), nullable=False)
+    severity: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="open", nullable=False)
+    diagnostics: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default=dict)
 
 
 class AudioUtteranceRecord(Base):
@@ -345,6 +485,7 @@ class AssertionRecord(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_assertion_subject_predicate", "subject_entity_id", "predicate"),
         Index("ix_assertion_review_status", "review_status"),
+        Index("ix_assertion_fact_group", "fact_group_key"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -372,14 +513,20 @@ class AssertionRecord(Base, TimestampMixin):
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     review_status: Mapped[str] = mapped_column(String(40), nullable=False)
     assertion_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    fact_group_key: Mapped[str | None] = mapped_column(String(64))
 
 
 class AssertionEvidenceRecord(Base):
     __tablename__ = "assertion_evidence"
     __table_args__ = (
         UniqueConstraint(
-            "assertion_id", "element_id", "utterance_id", name="uq_assertion_evidence_locator"
+            "assertion_id",
+            "element_id",
+            "utterance_id",
+            "table_cell_id",
+            name="uq_assertion_evidence_locator",
         ),
+        Index("ix_assertion_evidence_hash", "assertion_id", "evidence_hash"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -400,6 +547,10 @@ class AssertionEvidenceRecord(Base):
     page_number: Mapped[int | None] = mapped_column(Integer)
     bbox: Mapped[dict[str, float] | None] = mapped_column(JSON_TYPE)
     char_span: Mapped[dict[str, int] | None] = mapped_column(JSON_TYPE)
+    table_cell_id: Mapped[str | None] = mapped_column(
+        ForeignKey("table_cell.id", ondelete="SET NULL")
+    )
+    evidence_hash: Mapped[str | None] = mapped_column(String(64))
     audio_range: Mapped[dict[str, int] | None] = mapped_column(JSON_TYPE)
 
 

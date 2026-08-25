@@ -1,0 +1,5 @@
+# CPU-only anomaly-page rescue. MinerU remains the primary GPU parser.
+# Paddle 3.3.x has a confirmed Windows CPU oneDNN/PIR regression.
+paddlepaddle==3.2.2
+paddleocr==3.7.0
+paddlex[ocr]==3.7.2

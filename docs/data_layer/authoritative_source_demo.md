@@ -89,10 +89,10 @@ docker compose --profile core run --rm api datactl source demo
 
 ~~~text
 license_status = public_access
-access_class   = team_internal
+access_class   = restricted
 ~~~
 
-这表示可以在团队内部解析，但不能仅凭“官网公开”将全文放进公开数据集。
+这表示文档处于受限范围，不能仅凭“官网公开”将全文放进公开数据集。
 
 ## 6. 查询演示数据库
 

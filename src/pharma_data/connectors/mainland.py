@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
+from bs4 import BeautifulSoup
+
 from pharma_data.config import get_settings
 from pharma_data.connectors.base import FetchResult, SourceAdapter
 from pharma_data.connectors.http_client import authoritative_get
@@ -13,6 +15,15 @@ from pharma_data.contracts import (
     SourceRecordEnvelope,
 )
 from pharma_data.contracts.models import SourceRecordPage
+
+
+def validate_mainland_url(url: str, allowed_domains: tuple[str, ...], source_name: str) -> None:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https":
+        raise ValueError(f"大陆官方样本必须使用 HTTPS: {url}")
+    if not any(host == domain or host.endswith(f".{domain}") for domain in allowed_domains):
+        raise ValueError(f"URL 域名不在来源 {source_name} 的白名单中: {host}")
 
 
 class MainlandCatalogAdapter(SourceAdapter):
@@ -56,7 +67,7 @@ class MainlandCatalogAdapter(SourceAdapter):
                         payload.get("license_status", LicenseStatus.PUBLIC_ACCESS.value)
                     ),
                     access_class=AccessClass(
-                        payload.get("access_class", AccessClass.TEAM_INTERNAL.value)
+                        payload.get("access_class", AccessClass.RESTRICTED.value)
                     ),
                     document_type=DocumentType(
                         payload.get(
@@ -87,11 +98,13 @@ class MainlandCatalogAdapter(SourceAdapter):
                 "Accept": "application/pdf,text/html,application/xhtml+xml,application/json,*/*",
             },
             timeout=60,
+            url_validator=self._validate_url,
         )
         self._validate_url(str(response.url))
         media_type = response.headers.get("content-type", "").split(";", 1)[0]
         if not media_type:
             media_type = mimetypes.guess_type(urlparse(str(response.url)).path)[0]
+        self._validate_content(response.content, media_type or "application/octet-stream")
         return [
             FetchResult(
                 content=response.content,
@@ -107,14 +120,20 @@ class MainlandCatalogAdapter(SourceAdapter):
         ]
 
     def _validate_url(self, url: str) -> None:
-        parsed = urlparse(url)
-        host = (parsed.hostname or "").lower()
-        if parsed.scheme != "https":
-            raise ValueError(f"大陆官方样本必须使用 HTTPS: {url}")
-        if not any(
-            host == domain or host.endswith(f".{domain}") for domain in self.allowed_domains
-        ):
-            raise ValueError(f"URL 域名不在来源 {self.source_name} 的白名单中: {host}")
+        validate_mainland_url(url, self.allowed_domains, self.source_name)
+
+    def _validate_content(self, content: bytes, media_type: str) -> None:
+        if media_type not in {"text/html", "application/xhtml+xml"}:
+            return
+        soup = BeautifulSoup(content, "html.parser")
+        for node in soup(["script", "style", "noscript"]):
+            node.decompose()
+        visible_text = " ".join(soup.get_text(" ", strip=True).split())
+        if len(visible_text) < 4:
+            raise ValueError(
+                f"来源 {self.source_name} 未返回可解析正文；可能存在脚本校验或访问限制，"
+                "请改用官方人工导出清单"
+            )
 
     @staticmethod
     def _parse_date(value: Any) -> datetime | None:

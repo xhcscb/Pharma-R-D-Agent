@@ -1,7 +1,10 @@
 name: pharma-analyst-data
 
 x-app: &app
-  build: .
+  build:
+    context: .
+    args:
+      PHARMA_EXTRAS: ${PHARMA_EXTRAS:-}
   env_file:
     - path: .env
       required: false
@@ -9,6 +12,14 @@ x-app: &app
     DATABASE_URL: ${CONTAINER_DATABASE_URL:-postgresql+psycopg://pharma:pharma@postgres:5432/pharma}
     OBJECT_STORE_ROOT: ${CONTAINER_OBJECT_STORE_ROOT:-/app/data/objects}
     PUBLIC_EXPORT_ROOT: ${CONTAINER_PUBLIC_EXPORT_ROOT:-/app/data/exports}
+    PUBLIC_INBOX_ROOT: ${CONTAINER_PUBLIC_INBOX_ROOT:-/app/data/public}
+    PUBLIC_INBOX_ARCHIVE_ROOT: ${CONTAINER_PUBLIC_INBOX_ARCHIVE_ROOT:-/app/data/public/_archive}
+    PUBLIC_INBOX_METADATA_ROOT: ${CONTAINER_PUBLIC_INBOX_METADATA_ROOT:-/app/data/public/_metadata/docker-production}
+    PUBLIC_INBOX_QUARANTINE_ROOT: ${CONTAINER_PUBLIC_INBOX_QUARANTINE_ROOT:-/app/data/public/_quarantine}
+    RESTRICTED_INBOX_ROOT: ${CONTAINER_RESTRICTED_INBOX_ROOT:-/app/data/restricted}
+    RESTRICTED_INBOX_ARCHIVE_ROOT: ${CONTAINER_RESTRICTED_INBOX_ARCHIVE_ROOT:-/app/data/restricted/_archive}
+    RESTRICTED_INBOX_METADATA_ROOT: ${CONTAINER_RESTRICTED_INBOX_METADATA_ROOT:-/app/data/restricted/_metadata/docker-production}
+    RESTRICTED_INBOX_QUARANTINE_ROOT: ${CONTAINER_RESTRICTED_INBOX_QUARANTINE_ROOT:-/app/data/restricted/_quarantine}
     NEO4J_URI: ${CONTAINER_NEO4J_URI:-bolt://neo4j:7687}
     MILVUS_URI: ${CONTAINER_MILVUS_URI:-http://milvus:19530}
     TIMESCALE_URL: ${CONTAINER_TIMESCALE_URL:-postgresql+psycopg://pharma:pharma@timescaledb:5432/pharma_timeseries}
@@ -31,7 +42,10 @@ services:
 
   worker:
     <<: *app
-    profiles: [core, full]
+    # Local-GPU mode runs the worker on the Windows host so MinerU can remain
+    # bound to 127.0.0.1. Enable this container only for an authenticated HTTPS
+    # remote MinerU backend.
+    profiles: [remote-worker]
     command: ["python", "-m", "pharma_data.orchestration.worker"]
 
   postgres:

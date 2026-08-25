@@ -15,9 +15,11 @@ IGNORED_DIRS = {
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
+    ".venv-mineru",
     "data",
     "htmlcov",
     "node_modules",
+    "output",
 }
 REQUIRED_NAVIGATION = (
     "README.md",

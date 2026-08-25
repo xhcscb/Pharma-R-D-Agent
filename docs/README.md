@@ -15,9 +15,16 @@
 - [快速启动](data_layer/quickstart.md)：最短运行步骤；
 - [完整操作手册](data_layer/operations.md)：导入、处理、复核、投影和验收；
 - [中国大陆权威来源](data_layer/authoritative_sources.md)：来源等级、许可、配置和同步方式；
+- [文件投递箱](data_layer/inbox.md)：自动 metadata、哈希归档、来源侧车和推理层交接；
+- [三份真实财报验收](data_layer/inbox_acceptance_20260823.md)：实际运行数量和未通过门禁；
 - [可视化说明](data_layer/visualization.md)：解析元素、实体高亮、关系图和证据链演示；
 - [验收说明](data_layer/acceptance.md)：自动测试与 Gold 语料质量门。
 - [已知限制](data_layer/known_limitations.md)：当前 Gold、可选依赖、投影和类型检查边界。
+
+## 正式目标复核
+
+- [正式研究目标符合性与验收矩阵](formal_goal_traceability.md)：正式四层框架、代码证据、研究门禁与当前差距；
+- [正式数据接入与生产启用步骤](data_layer/production_activation.md)：临床、财务、行情和研报授权后的落地流程。
 
 ## 文档状态
 

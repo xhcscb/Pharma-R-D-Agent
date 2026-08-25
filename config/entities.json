@@ -11,6 +11,11 @@
       "external_ids": {"stock_code": "688235.SH"}
     },
     {
+      "canonical_name": "\u827e\u8fea\u836f\u4e1a",
+      "aliases": ["\u6c5f\u82cf\u827e\u8fea\u836f\u4e1a\u80a1\u4efd\u6709\u9650\u516c\u53f8"],
+      "external_ids": {"stock_code": "688488.SH"}
+    },
+    {
       "canonical_name": "\u9ed8\u6c99\u4e1c",
       "aliases": ["Merck & Co.", "Merck & Co., Inc.", "MSD"],
       "external_ids": {"ticker": "MRK", "sec_cik": "0000310158"}
@@ -30,6 +35,26 @@
     {
       "canonical_name": "\u5e15\u535a\u5229\u73e0\u5355\u6297",
       "aliases": ["Pembrolizumab", "KEYTRUDA", "KEYTRUDA QLEX"],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "HRS-8080",
+      "aliases": ["HRS-8080\u7247"],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "ACC017",
+      "aliases": [],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "ACC085",
+      "aliases": [],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "ACC077",
+      "aliases": [],
       "external_ids": {}
     }
   ],
@@ -54,6 +79,11 @@
     {
       "canonical_name": "\u6dcb\u5df4\u7624",
       "aliases": ["lymphoma"],
+      "external_ids": {}
+    },
+    {
+      "canonical_name": "\u4e73\u817a\u764c",
+      "aliases": ["breast cancer"],
       "external_ids": {}
     }
   ]

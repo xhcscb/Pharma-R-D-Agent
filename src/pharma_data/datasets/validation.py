@@ -60,6 +60,9 @@ class DataQualityValidator:
             approved_with_evidence / approved_assertions if approved_assertions else 1.0
         )
         checks = {
+            "non_empty_corpus": source_records > 0 and versions > 0,
+            "assertions_present": assertions > 0,
+            "approved_assertions_present": approved_assertions > 0,
             "approved_evidence_coverage": evidence_coverage == 1.0,
             "no_unknown_or_prohibited_versions": unknown_licenses == 0,
             "all_artifacts_hashed": missing_hashes == 0,

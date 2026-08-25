@@ -40,3 +40,31 @@ class SnapshotRequest(BaseModel):
     access_class: AccessClass
     created_by: str
     specification: dict[str, Any] = Field(default_factory=dict)
+
+
+class CompareRequest(BaseModel):
+    query: str = Field(min_length=1)
+    objects: list[str] = Field(default_factory=list)
+    dimensions: list[str] = Field(default_factory=list)
+    time: str | None = None
+    scope: str | None = None
+    access_class: AccessClass = AccessClass.RESTRICTED
+    include_candidates: bool = False
+
+
+class SummarizeRequest(BaseModel):
+    entity: str | None = None
+    max_claims: int = Field(default=12, ge=1, le=100)
+    access_class: AccessClass = AccessClass.RESTRICTED
+    include_candidates: bool = False
+
+
+class ReasoningContextRequest(BaseModel):
+    entity_names: list[str] = Field(default_factory=list)
+    access_class: AccessClass = AccessClass.RESTRICTED
+    include_candidates: bool = False
+
+
+class InboxRunRequest(BaseModel):
+    run_pipeline: bool = False
+    max_files: int | None = Field(default=None, ge=1, le=1000)

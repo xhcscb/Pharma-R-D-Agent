@@ -17,6 +17,7 @@ from pharma_data.contracts.models import (
     AssertionCandidate,
     AudioUtterance,
     BoundingBox,
+    CharacterSpan,
     CleanResult,
     ConflictRecord,
     DocumentElement,
@@ -26,6 +27,7 @@ from pharma_data.contracts.models import (
     SourceCheckpoint,
     SourceRecordEnvelope,
     SourceRecordPage,
+    TableCell,
 )
 
 __all__ = [
@@ -34,6 +36,7 @@ __all__ = [
     "AssertionCandidate",
     "AudioUtterance",
     "BoundingBox",
+    "CharacterSpan",
     "ConflictRecord",
     "AssertionMode",
     "CleanResult",
@@ -54,4 +57,5 @@ __all__ = [
     "SourceCheckpoint",
     "SourceRecordPage",
     "SourceRecordEnvelope",
+    "TableCell",
 ]

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy import select
@@ -18,6 +18,12 @@ class IngestionReport:
     versions_created: int = 0
     jobs_enqueued: int = 0
     quarantined_records: int = 0
+    source_record_ids: list[str] = field(default_factory=list)
+    artifact_ids: list[str] = field(default_factory=list)
+    document_ids: list[str] = field(default_factory=list)
+    document_version_ids: list[str] = field(default_factory=list)
+    job_ids: list[str] = field(default_factory=list)
+    enqueued_job_ids: list[str] = field(default_factory=list)
 
 
 class IngestionService:
@@ -50,6 +56,8 @@ class IngestionService:
             for envelope in page.records:
                 report.records_discovered += 1
                 source_record = self.repository.upsert_source_record(source, envelope)
+                if source_record.id not in report.source_record_ids:
+                    report.source_record_ids.append(source_record.id)
                 if envelope.license_status in {
                     LicenseStatus.METADATA_ONLY,
                     LicenseStatus.PROHIBITED,
@@ -76,10 +84,16 @@ class IngestionService:
                         metadata=fetched.metadata,
                     )
                     report.artifacts_stored += 1
-                    _, version, created = self.repository.create_document_version(
+                    if artifact.id not in report.artifact_ids:
+                        report.artifact_ids.append(artifact.id)
+                    document, version, created = self.repository.create_document_version(
                         source_record=source_record,
                         artifact=artifact,
                     )
+                    if document.id not in report.document_ids:
+                        report.document_ids.append(document.id)
+                    if version.id not in report.document_version_ids:
+                        report.document_version_ids.append(version.id)
                     report.versions_created += int(created)
                     job = self.repository.enqueue_job(
                         document_version_id=version.id,
@@ -87,8 +101,11 @@ class IngestionService:
                         input_hash=version.content_hash,
                         payload={"artifact_id": artifact.id},
                     )
+                    if job.id not in report.job_ids:
+                        report.job_ids.append(job.id)
                     if job.id not in known_job_ids:
                         report.jobs_enqueued += 1
+                        report.enqueued_job_ids.append(job.id)
                         known_job_ids.add(job.id)
             cursor = page.next_cursor
             if not cursor or (max_pages is not None and page_count >= max_pages):

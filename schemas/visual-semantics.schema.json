@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.pharma-agent/schemas/visual-semantics.schema.json",
+  "title": "Verified visual semantics evidence",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "chart_type",
+    "source_element_id",
+    "asset",
+    "observation"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "status": {"const": "verified"},
+    "chart_type": {"const": "clinical_pipeline_stage_matrix"},
+    "source_element_id": {"type": "string"},
+    "asset": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "source_ref": {"type": "string"},
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "mime_type": {"type": "string"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "pixel_width": {"type": "integer", "minimum": 1},
+        "pixel_height": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "drug",
+        "indication",
+        "region",
+        "stage",
+        "stage_label",
+        "bar_color",
+        "bar_bbox_pixels",
+        "stage_column_bbox_pixels",
+        "derivation",
+        "confidence"
+      ],
+      "properties": {
+        "row_index": {"type": "integer", "minimum": 1},
+        "drug": {"type": "string", "minLength": 1},
+        "target": {"type": "string"},
+        "combination": {"type": "string"},
+        "indication": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1},
+        "stage": {
+          "enum": ["PHASE_I", "PHASE_II", "PHASE_III", "NDA"]
+        },
+        "stage_label": {"enum": ["I期", "II期", "III期", "NDA"]},
+        "bar_color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+        "bar_bbox_pixels": {"$ref": "#/$defs/bbox"},
+        "stage_column_bbox_pixels": {"$ref": "#/$defs/bbox"},
+        "derivation": {"const": "colored_bar_endpoint_to_stage_column"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "bbox": {
+      "type": "object",
+      "required": ["x0", "y0", "x1", "y1"],
+      "properties": {
+        "x0": {"type": "number"},
+        "y0": {"type": "number"},
+        "x1": {"type": "number"},
+        "y1": {"type": "number"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

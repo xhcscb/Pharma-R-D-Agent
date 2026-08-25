@@ -13,7 +13,7 @@
     "retrieved_at": {"type": "string", "format": "date-time"},
     "content_urls": {"type": "array", "items": {"type": "string", "format": "uri"}},
     "license_status": {"enum": ["public", "public_access", "authorized_restricted", "metadata_only", "prohibited", "unknown"]},
-    "access_class": {"enum": ["public", "team_internal", "restricted"]},
+    "access_class": {"enum": ["public", "restricted"]},
     "document_type": {"type": "string"},
     "raw_metadata": {"type": "object"}
   },

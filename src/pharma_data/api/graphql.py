@@ -1,10 +1,14 @@
+from typing import Any
+
 import strawberry
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 
 from pharma_data.storage.canonical import session_scope
+from pharma_data.storage.canonical.access import visible_version_ids
 from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
+    AudioUtteranceRecord,
     ConflictGroupRecord,
     Document,
     DocumentElementRecord,
@@ -12,6 +16,24 @@ from pharma_data.storage.canonical.models import (
     EntityMentionRecord,
     EntityRecord,
 )
+
+
+def _public_version_ids() -> Any:
+    visible = visible_version_ids(("public",)).subquery()
+    return select(visible.c.id)
+
+
+def _active_evidence_condition() -> Any:
+    return or_(
+        and_(
+            AssertionEvidenceRecord.element_id.is_not(None),
+            DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id,
+        ),
+        and_(
+            AssertionEvidenceRecord.utterance_id.is_not(None),
+            AudioUtteranceRecord.parse_run_id == DocumentVersion.active_parse_run_id,
+        ),
+    )
 
 
 @strawberry.type
@@ -66,7 +88,7 @@ class ConflictNode:
     rationale: str
 
 
-def _public_assertions():
+def _public_assertions() -> Any:
     return (
         select(AssertionRecord)
         .join(
@@ -74,7 +96,18 @@ def _public_assertions():
             AssertionEvidenceRecord.assertion_id == AssertionRecord.id,
         )
         .join(DocumentVersion, AssertionEvidenceRecord.document_version_id == DocumentVersion.id)
-        .where(DocumentVersion.access_class == "public")
+        .outerjoin(
+            DocumentElementRecord,
+            DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+        )
+        .outerjoin(
+            AudioUtteranceRecord,
+            AudioUtteranceRecord.id == AssertionEvidenceRecord.utterance_id,
+        )
+        .where(
+            DocumentVersion.id.in_(_public_version_ids()),
+            _active_evidence_condition(),
+        )
     )
 
 
@@ -86,7 +119,10 @@ class Query:
             row = session.scalar(
                 select(Document)
                 .join(DocumentVersion, Document.current_version_id == DocumentVersion.id)
-                .where(Document.id == id, DocumentVersion.access_class == "public")
+                .where(
+                    Document.id == id,
+                    DocumentVersion.id.in_(_public_version_ids()),
+                )
             )
             if row is None:
                 return None
@@ -107,7 +143,16 @@ class Query:
                     DocumentVersion,
                     EntityMentionRecord.document_version_id == DocumentVersion.id,
                 )
-                .where(EntityRecord.id == id, DocumentVersion.access_class == "public")
+                .join(
+                    DocumentElementRecord,
+                    DocumentElementRecord.id == EntityMentionRecord.element_id,
+                )
+                .where(
+                    EntityRecord.id == id,
+                    DocumentVersion.id.in_(_public_version_ids()),
+                    DocumentElementRecord.parse_run_id
+                    == DocumentVersion.active_parse_run_id,
+                )
             )
             if row is None:
                 return None
@@ -156,7 +201,8 @@ class Query:
                 )
                 .where(
                     DocumentElementRecord.text.ilike(f"%{query}%"),
-                    DocumentVersion.access_class == "public",
+                    DocumentVersion.id.in_(_public_version_ids()),
+                    DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id,
                 )
                 .distinct()
                 .limit(min(limit, 100))
@@ -180,9 +226,18 @@ class Query:
                     DocumentVersion,
                     AssertionEvidenceRecord.document_version_id == DocumentVersion.id,
                 )
+                .outerjoin(
+                    DocumentElementRecord,
+                    DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+                )
+                .outerjoin(
+                    AudioUtteranceRecord,
+                    AudioUtteranceRecord.id == AssertionEvidenceRecord.utterance_id,
+                )
                 .where(
                     AssertionEvidenceRecord.evidence_text.ilike(f"%{query}%"),
-                    DocumentVersion.access_class == "public",
+                    DocumentVersion.id.in_(_public_version_ids()),
+                    _active_evidence_condition(),
                 )
                 .limit(min(limit, 100))
             )

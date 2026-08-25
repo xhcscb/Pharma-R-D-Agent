@@ -1,7 +1,10 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from pharma_data.config import Settings
+from pharma_data.storage.canonical.access import version_access_classes
 from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
@@ -25,23 +28,25 @@ class ElasticsearchProjector:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    def _client(self):
+    def _client(self) -> Any:
         from elasticsearch import Elasticsearch
 
         return Elasticsearch(self.settings.elasticsearch_url)
 
-    def _ensure_indices(self, client) -> None:
+    def _ensure_indices(self, client: Any) -> None:
         mappings = {
             "documents": {
                 "title": {"type": "text"},
                 "document_type": {"type": "keyword"},
                 "access_class": {"type": "keyword"},
+                "access_classes": {"type": "keyword"},
                 "published_at": {"type": "date"},
             },
             "document_elements": {
                 "text": {"type": "text"},
                 "element_type": {"type": "keyword"},
                 "access_class": {"type": "keyword"},
+                "access_classes": {"type": "keyword"},
                 "document_version_id": {"type": "keyword"},
                 "page_number": {"type": "integer"},
                 "assertion_id": {"type": "keyword"},
@@ -71,7 +76,16 @@ class ElasticsearchProjector:
             raise ValueError("Only approved assertions may be projected")
         evidence = session.scalar(
             select(AssertionEvidenceRecord)
+            .join(
+                DocumentVersion,
+                DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+            )
+            .join(
+                DocumentElementRecord,
+                DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+            )
             .where(AssertionEvidenceRecord.assertion_id == assertion.id)
+            .where(DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id)
             .limit(1)
         )
         if evidence is None:
@@ -90,6 +104,9 @@ class ElasticsearchProjector:
                 "page_number": evidence.page_number,
                 "bbox": evidence.bbox,
                 "access_class": version.access_class if version else "restricted",
+                "access_classes": (
+                    version_access_classes(session, version) if version else []
+                ),
                 "record_kind": "assertion_evidence",
             },
             refresh=False,
@@ -121,6 +138,7 @@ class ElasticsearchProjector:
                     "document_version_id": version.id,
                     "published_at": version.published_at,
                     "access_class": version.access_class,
+                    "access_classes": version_access_classes(session, version),
                     "license_status": version.license_status,
                 },
                 refresh=False,
@@ -130,7 +148,8 @@ class ElasticsearchProjector:
             elements = list(
                 session.scalars(
                     select(DocumentElementRecord).where(
-                        DocumentElementRecord.document_version_id == version.id
+                        DocumentElementRecord.document_version_id == version.id,
+                        DocumentElementRecord.parse_run_id == version.active_parse_run_id,
                     )
                 )
             )
@@ -143,6 +162,7 @@ class ElasticsearchProjector:
                     "page_number": element.page_number,
                     "bbox": element.bbox,
                     "access_class": version.access_class,
+                    "access_classes": version_access_classes(session, version),
                 }
                 client.index(
                     index="document_elements",
@@ -161,6 +181,7 @@ class ElasticsearchProjector:
                         "body": "\n".join(item.text for item in elements),
                         "published_at": version.published_at,
                         "access_class": version.access_class,
+                        "access_classes": version_access_classes(session, version),
                     },
                     refresh=False,
                 )
@@ -168,7 +189,8 @@ class ElasticsearchProjector:
 
             for utterance in session.scalars(
                 select(AudioUtteranceRecord).where(
-                    AudioUtteranceRecord.document_version_id == version.id
+                    AudioUtteranceRecord.document_version_id == version.id,
+                    AudioUtteranceRecord.parse_run_id == version.active_parse_run_id,
                 )
             ):
                 client.index(
@@ -183,6 +205,7 @@ class ElasticsearchProjector:
                         "start_ms": utterance.start_ms,
                         "end_ms": utterance.end_ms,
                         "access_class": version.access_class,
+                        "access_classes": version_access_classes(session, version),
                     },
                     refresh=False,
                 )

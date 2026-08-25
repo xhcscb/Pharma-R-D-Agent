@@ -3,6 +3,7 @@ from pharma_data.entity_extraction.extractors import (
     DictionaryExtractor,
     PatternExtractor,
     TransformerNERExtractor,
+    VisualSemanticExtractor,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "EntityExtractAgent",
     "PatternExtractor",
     "TransformerNERExtractor",
+    "VisualSemanticExtractor",
 ]

@@ -9,14 +9,27 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock ./
+ARG PHARMA_EXTRAS=""
 RUN python -m pip install --upgrade pip uv==0.12.2 \
-    && uv export --locked --no-dev \
-       --extra documents --extra audio --extra ml \
+    && set -eu \
+    && extra_args="" \
+    && old_ifs="$IFS" \
+    && IFS=',' \
+    && for extra in $PHARMA_EXTRAS; do \
+         case "$extra" in \
+           "") ;; \
+           documents|audio|ml) extra_args="$extra_args --extra $extra" ;; \
+           *) echo "Unsupported PHARMA_EXTRAS value: $extra" >&2; exit 2 ;; \
+         esac; \
+       done \
+    && IFS="$old_ifs" \
+    && uv export --locked --no-dev $extra_args \
        --no-emit-project --format requirements-txt \
        --output-file /tmp/requirements.txt \
     && python -m pip install --require-hashes -r /tmp/requirements.txt
 
+COPY README.md ./
 COPY src ./src
 RUN python -m pip install --no-deps .
 

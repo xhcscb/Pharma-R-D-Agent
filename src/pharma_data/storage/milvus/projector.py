@@ -1,13 +1,16 @@
 import hashlib
 import math
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from pharma_data.config import Settings
+from pharma_data.storage.canonical.access import version_access_classes
 from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
+    Document,
     DocumentElementRecord,
     DocumentVersion,
     EntityRecord,
@@ -50,12 +53,12 @@ class MilvusProjector:
         self.settings = settings
         self.embedder = HashingEmbedder(settings.embedding_dimension)
 
-    def _client(self):
+    def _client(self) -> Any:
         from pymilvus import MilvusClient
 
         return MilvusClient(uri=self.settings.milvus_uri)
 
-    def _ensure_collections(self, client) -> None:
+    def _ensure_collections(self, client: Any) -> None:
         for collection in self.collections:
             if client.has_collection(collection):
                 continue
@@ -96,7 +99,16 @@ class MilvusProjector:
             raise ValueError("Only approved assertions may be projected")
         evidence = session.scalar(
             select(AssertionEvidenceRecord)
+            .join(
+                DocumentVersion,
+                DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+            )
+            .join(
+                DocumentElementRecord,
+                DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+            )
             .where(AssertionEvidenceRecord.assertion_id == assertion.id)
+            .where(DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id)
             .limit(1)
         )
         if evidence is None:
@@ -115,6 +127,9 @@ class MilvusProjector:
                     extra={
                         "assertion_id": assertion.id,
                         "document_version_id": evidence.document_version_id,
+                        "access_classes": (
+                            version_access_classes(session, version) if version else []
+                        ),
                     },
                 )
             ],
@@ -129,10 +144,13 @@ class MilvusProjector:
 
         chunk_count = 0
         for element, version in session.execute(
-            select(DocumentElementRecord, DocumentVersion).join(
+            select(DocumentElementRecord, DocumentVersion)
+            .join(
                 DocumentVersion,
                 DocumentElementRecord.document_version_id == DocumentVersion.id,
             )
+            .join(Document, Document.current_version_id == DocumentVersion.id)
+            .where(DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id)
         ):
             if not element.text.strip():
                 continue
@@ -147,6 +165,7 @@ class MilvusProjector:
                             "document_version_id": version.id,
                             "element_type": element.element_type,
                             "page_number": element.page_number,
+                            "access_classes": version_access_classes(session, version),
                         },
                     )
                 ],
@@ -172,7 +191,25 @@ class MilvusProjector:
 
         assertions = list(
             session.scalars(
-                select(AssertionRecord).where(AssertionRecord.review_status == "approved")
+                select(AssertionRecord)
+                .join(
+                    AssertionEvidenceRecord,
+                    AssertionEvidenceRecord.assertion_id == AssertionRecord.id,
+                )
+                .join(
+                    DocumentVersion,
+                    DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+                )
+                .join(
+                    DocumentElementRecord,
+                    DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+                )
+                .where(
+                    AssertionRecord.review_status == "approved",
+                    DocumentElementRecord.parse_run_id
+                    == DocumentVersion.active_parse_run_id,
+                )
+                .distinct()
             )
         )
         for assertion in assertions:

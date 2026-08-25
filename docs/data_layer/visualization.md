@@ -6,7 +6,8 @@
 
 看板展示：
 
-- 权威来源、来源记录、原始制品、文档和历史版本数量；
+- 已登记来源、A1/A2 核验数量、来源记录、原始制品、文档和历史版本数量；
+- 投递箱待处理数量、哈希归档回执、待补 metadata 和推理就绪度；
 - 标题、段落、表格、脚注和图形等解析元素；
 - 实体类型、实体链接数量和抽取置信度；
 - 关系类型、候选主张、证据覆盖率和人工复核状态；
@@ -49,7 +50,7 @@ sqlite:///./data/demo/china-mainland-demo.db
 http://127.0.0.1:8000/demo/data-layer
 ~~~
 
-演示库中的文档是 `team_internal`。在页面选择“团队内部”，输入 `.env` 中的 `INTERNAL_API_KEY`，再单击“刷新数据”。API Key 只用于当前浏览器请求，页面不会把它写入数据库或本地存储。
+页面只有“公开数据”和“受限数据”两种范围。公开数据无需 Key；受限数据需输入 `.env` 中的 `INTERNAL_API_KEY`。API Key 只用于当前浏览器请求，页面不会把它写入数据库或本地存储。
 
 如果演示库还不存在，先执行：
 
@@ -76,12 +77,12 @@ docker compose --profile core exec api alembic upgrade head
 Invoke-RestMethod "http://127.0.0.1:8000/v1/visualizations/data-layer?caller_access=public"
 ~~~
 
-团队内部范围：
+受限范围：
 
 ~~~powershell
 $headers = @{ "X-Internal-API-Key" = "YOUR_INTERNAL_API_KEY" }
 Invoke-RestMethod `
-  "http://127.0.0.1:8000/v1/visualizations/data-layer?caller_access=team_internal" `
+  "http://127.0.0.1:8000/v1/visualizations/data-layer?caller_access=restricted" `
   -Headers $headers
 ~~~
 
@@ -91,7 +92,7 @@ Invoke-RestMethod `
 |---|---|
 | `summary` | 来源、文档、元素、实体、主张、证据、冲突和覆盖率 |
 | `pipeline` | 数据处理链路各层数量 |
-| `sources` | 权威来源和来源等级 |
+| `sources` | 已登记来源和来源等级；B2 不会被显示成已核验权威来源 |
 | `documents` | 当前文档版本的处理结果 |
 | `element_types` | 解析元素分布及平均置信度 |
 | `entity_types` | 实体提及、链接数量及平均置信度 |
@@ -101,6 +102,8 @@ Invoke-RestMethod `
 | `jobs`、`runs` | 流水线任务与运行状态 |
 | `licenses` | 许可状态与访问等级 |
 | `evidence_examples` | 可定位到原文的主张证据样例 |
+| `inbox` | 内部范围可见的投递、归档和 metadata 复核统计 |
+| `reasoning_readiness` | 已批准/候选主张、待来源复核文档和推理接口地址 |
 
 ## 5. 结果判读
 
@@ -122,7 +125,7 @@ Invoke-RestMethod `
 
 ### 页面只有零数据
 
-先确认 API 使用的 `DATABASE_URL` 指向正确数据库，再确认页面选择的访问范围。中国大陆真实来源演示默认是 `team_internal`，公开范围不会显示这些文档。
+先确认 API 使用的 `DATABASE_URL` 指向正确数据库，再确认页面选择的访问范围。`data/public` 文档在两种范围均可见；`data/restricted` 文档只在提供 Key 的受限范围可见。
 
 ### 返回 403
 

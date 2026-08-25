@@ -19,6 +19,20 @@ QUALITY_THRESHOLDS = {
     "projection_id_consistency": ("min", 1.0),
 }
 
+REQUIRED_BENCHMARK_SETS = (
+    "native_pdf_text",
+    "scanned_pdf_text",
+    "tables",
+    "entities",
+    "entity_links",
+    "relations",
+    "deduplicated_relations",
+    "dates",
+    "units",
+    "conflicts",
+    "projection_ids",
+)
+
 
 def levenshtein_distance(left: list[Any], right: list[Any]) -> int:
     if len(left) < len(right):
@@ -99,6 +113,8 @@ class DatasetBenchmarkEvaluator:
         self.thresholds = thresholds or QUALITY_THRESHOLDS
 
     def evaluate(self, payload: dict[str, Any]) -> dict[str, Any]:
+        coverage = {name: len(payload.get(name, [])) for name in REQUIRED_BENCHMARK_SETS}
+        missing_required_sets = [name for name, count in coverage.items() if count == 0]
         metrics = {
             "native_pdf_character_error_rate": character_error_rate(
                 payload.get("native_pdf_text", [])
@@ -128,7 +144,13 @@ class DatasetBenchmarkEvaluator:
                 "operator": "<=" if direction == "max" else ">=",
                 "threshold": threshold,
             }
-        return {"passed": all(item["passed"] for item in checks.values()), "checks": checks}
+        return {
+            "passed": not missing_required_sets
+            and all(item["passed"] for item in checks.values()),
+            "checks": checks,
+            "coverage": coverage,
+            "missing_required_sets": missing_required_sets,
+        }
 
     def evaluate_file(self, path: str | Path) -> dict[str, Any]:
         return self.evaluate(json.loads(Path(path).read_text(encoding="utf-8")))

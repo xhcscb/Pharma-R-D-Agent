@@ -205,10 +205,9 @@
       <form class="controls" id="controls">
         <select id="access" aria-label="访问范围">
           <option value="public">公开数据</option>
-          <option value="team_internal">团队内部</option>
           <option value="restricted">受限数据</option>
         </select>
-        <input id="api-key" type="password" autocomplete="off" placeholder="内部 API Key">
+        <input id="api-key" type="password" autocomplete="off" placeholder="受限数据 API Key" disabled>
         <button type="submit">刷新数据</button>
       </form>
     </section>
@@ -220,6 +219,24 @@
       <div class="panel-head"><h2>处理链路</h2><span class="hint">当前文档版本；历史版本仅计入版本、任务与运行统计</span></div>
       <div class="pipeline" id="pipeline"></div>
     </section>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><h2>自动投递与归档</h2><span class="hint">投递箱 → metadata → 内容哈希归档</span></div>
+        <div class="quality" id="inbox-readiness"></div>
+        <p class="hint" id="inbox-path"></p>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>推理层就绪度</h2><span class="hint">只有批准且通过证据门控的主张可正式使用</span></div>
+        <div class="quality" id="reasoning-readiness"></div>
+        <p class="hint" id="reasoning-interface"></p>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>GPU / 解析质量</h2><span class="hint">MinerU 节点与硬门复核</span></div>
+        <div class="quality" id="mineru-readiness"></div>
+        <p class="hint" id="mineru-detail"></p>
+      </section>
+    </div>
 
     <section class="panel graph-panel" style="margin-top:16px">
       <div class="panel-head graph-heading">
@@ -289,7 +306,7 @@
       <div class="panel-head"><h2>已处理文档</h2><span class="hint">按解析元素数量排序</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>文档</th><th>来源</th><th>类型</th><th>许可 / 权限</th><th class="numeric">元素</th><th class="numeric">实体提及</th><th class="numeric">关系</th></tr></thead>
+          <thead><tr><th>文档</th><th>来源 / 来源核验</th><th>期间 / 股票</th><th>许可 / 权限</th><th class="numeric">元素</th><th class="numeric">实体提及</th><th class="numeric">候选 / 已批准</th></tr></thead>
           <tbody id="documents"></tbody>
         </table>
       </div>
@@ -318,11 +335,11 @@
     }
     function renderSummary(data) {
       const items = [
-        ['权威来源', data.sources, '中国大陆来源'],
+        ['已登记来源', data.sources, `${data.verified_sources || 0} 个 A1/A2 来源`],
         ['当前文档', data.documents, `${data.versions} 个内容版本`],
-        ['解析元素', data.elements, '标题、段落、表格等'],
+          ['解析元素', data.elements, `${fmt.format(data.open_parse_reviews || 0)} 个硬门复核项`],
         ['规范实体', data.entities, `${fmt.format(data.mentions)} 次提及`],
-        ['关系主张', data.assertions, `${fmt.format(data.evidence)} 条证据`],
+        ['关系主张', data.assertions, `${fmt.format(data.metric_observations || 0)} 条指标观测`],
         ['待处理冲突', data.conflicts, `实体链接率 ${(data.entity_link_rate * 100).toFixed(1)}%`]
       ];
       clear($('summary'));
@@ -362,7 +379,7 @@
       const candidate = data.assertion_reviews.find((item) => item.label === 'candidate')?.value || 0;
       const license = data.licenses.map((item) => item.label).join('、') || '无';
       const items = [
-        ['证据覆盖率', `${(data.summary.assertion_evidence_rate * 100).toFixed(1)}%`],
+        ['证据定位完整率', `${(data.summary.evidence_locator_completeness * 100).toFixed(1)}%`],
         ['候选主张', fmt.format(candidate)],
         ['许可状态', license]
       ];
@@ -372,17 +389,71 @@
         host.append(box);
       });
     }
+    function renderOperationalReadiness(data) {
+      const inbox = data.inbox || {};
+      const inboxItems = inbox.visible === false ? [
+        ['投递箱', '内部可见'], ['待处理', '—'], ['待补 metadata', '—']
+      ] : [
+        ['待处理', fmt.format(inbox.pending_files || 0)],
+        ['归档回执', fmt.format(inbox.receipt_count || 0)],
+        ['待补 metadata', fmt.format(inbox.metadata_review_required || 0)]
+      ];
+      clear($('inbox-readiness'));
+      inboxItems.forEach(([label, value]) => {
+        const box = el('div', 'quality-item');
+        box.append(el('span', 'hint', label), el('strong', '', value));
+        $('inbox-readiness').append(box);
+      });
+      $('inbox-path').textContent = inbox.inbox_root ? `投递目录：${inbox.inbox_root}` : '选择受限数据并提供 API Key，可查看投递状态。';
+
+      const readiness = data.reasoning_readiness || {};
+      const reasoningItems = [
+        ['已批准主张', fmt.format(readiness.approved_claims || 0)],
+        ['候选主张', fmt.format(readiness.candidate_claims || 0)],
+        ['正式就绪', readiness.reasoning_ready ? '是' : '否']
+      ];
+      clear($('reasoning-readiness'));
+      reasoningItems.forEach(([label, value]) => {
+        const box = el('div', 'quality-item');
+        box.append(el('span', 'hint', label), el('strong', '', value));
+        $('reasoning-readiness').append(box);
+      });
+      const blockerText = (readiness.blockers || []).join('、') || '无';
+      $('reasoning-interface').textContent = `推理接口：${readiness.interface || '/v1/reasoning/context'} · 正式阻断：${blockerText}`;
+
+      const mineru = data.mineru || {};
+      const registered = mineru.registered_backend || {};
+      const lastVerified = registered.metadata?.last_verified_health || {};
+      const gpuVerified = Boolean(mineru.gpu_verified || lastVerified.gpu_verified);
+      const effectiveStatus = mineru.service_reachable ? mineru.status : (registered.health_status || mineru.status);
+      const mineruItems = [
+        ['服务', effectiveStatus || 'unknown'],
+        ['CUDA', gpuVerified ? '已验证' : '未验证'],
+          ['硬门复核项', fmt.format(data.summary?.open_parse_reviews || 0)]
+      ];
+      clear($('mineru-readiness'));
+      mineruItems.forEach(([label, value]) => {
+        const box = el('div', 'quality-item');
+        box.append(el('span', 'hint', label), el('strong', '', value));
+        $('mineru-readiness').append(box);
+      });
+      const deviceName = mineru.device_name || lastVerified.device_name;
+      const directStatus = mineru.service_reachable ? '当前可直连' : 'API 容器不可直连主机回环地址；显示最近一次主机验证';
+      $('mineru-detail').textContent = [deviceName, mineru.backend || registered.backend, mineru.node_id || registered.node_id, directStatus].filter(Boolean).join(' · ') || mineru.error || '等待本机 MinerU GPU 服务启动';
+    }
     function renderDocuments(items) {
       const host = $('documents'); clear(host);
       items.forEach((item) => {
         const row = document.createElement('tr');
         const title = document.createElement('td');
         title.append(el('strong', '', item.title));
-        const source = el('td', '', item.source);
-        const type = el('td', '', item.document_type);
+        const source = document.createElement('td');
+        source.append(document.createTextNode(item.source), document.createElement('br'), el('span', item.metadata_review_required ? 'badge warning' : 'badge', item.provenance_status));
+        const type = document.createElement('td');
+        type.append(el('strong', '', item.report_period || item.document_type), document.createElement('br'), el('span', 'hint', [item.issuer, item.stock_code].filter(Boolean).join(' · ') || '未识别'));
         const access = document.createElement('td');
-        access.append(el('span', 'badge', item.license_status), document.createTextNode(' '), el('span', 'badge warning', item.access_class));
-        row.append(title, source, type, access, el('td', 'numeric', fmt.format(item.elements)), el('td', 'numeric', fmt.format(item.mentions)), el('td', 'numeric', fmt.format(item.assertions)));
+        access.append(el('span', 'badge', item.license_status), document.createTextNode(' '), el('span', 'badge warning', (item.access_classes || [item.access_class]).join(' + ')));
+        row.append(title, source, type, access, el('td', 'numeric', fmt.format(item.elements)), el('td', 'numeric', fmt.format(item.mentions)), el('td', 'numeric', `${fmt.format(item.assertions)} / ${fmt.format(item.approved_assertions || 0)}`));
         host.append(row);
       });
     }
@@ -568,7 +639,9 @@
       const steps = [['文档', example.document_title], ['页面', `PDF 第 ${example.page_number} 页`], ['元素', `${example.element_type} · ${example.parser_name}`], ['实体提及', `${example.mention_count} 个`], ['规范链接', `${example.entity_type_count} 类实体`]];
       steps.forEach(([label, value]) => { const step = el('div', 'extraction-step'); step.append(el('span', '', label), el('strong', '', value)); flow.append(step); });
       $('element-label').textContent = `${example.element_type} 元素 · 第 ${example.page_number} 页`;
-      $('element-meta').textContent = `bbox ${Object.values(example.bbox || {}).map((value) => Number(value).toFixed(1)).join(', ')} · 解析置信度 ${Number(example.parser_confidence).toFixed(2)}`;
+      const bbox = example.bbox || {};
+      const bboxText = [bbox.x0, bbox.y0, bbox.x1, bbox.y1].map((value) => Number(value).toFixed(1)).join(', ');
+      $('element-meta').textContent = `bbox ${bboxText} · 解析置信度 ${Number(example.parser_confidence).toFixed(2)}`;
       const types = [...new Set(example.mentions.map((item) => item.type))];
       const filter = $('entity-type-filter'); clear(filter); types.forEach((type) => filter.append(new Option(type, type)));
       const preferred = types.includes('Drug') ? 'Drug' : types[0]; filter.value = preferred;
@@ -582,6 +655,7 @@
       renderBars('predicate-bars', data.predicates, (item) => ` · ${Number(item.confidence || 0).toFixed(2)}`);
       renderBars('job-bars', data.jobs, () => '');
       renderQuality(data);
+      renderOperationalReadiness(data);
       renderDocuments(data.documents);
       renderEvidence(data.evidence_examples);
       renderGraph(data.relation_graph);
@@ -590,13 +664,13 @@
     async function loadData(event) {
       if (event) event.preventDefault();
       const access = $('access').value;
-      const key = $('api-key').value.trim();
+      const key = access === 'restricted' ? $('api-key').value.trim() : '';
       const headers = key ? {'X-Internal-API-Key': key} : {};
       $('status').classList.remove('error');
       $('status').textContent = '正在读取数据……';
       try {
         const response = await fetch(`/v1/visualizations/data-layer?caller_access=${encodeURIComponent(access)}`, {headers});
-        if (!response.ok) throw new Error(response.status === 403 ? '内部范围需要有效的 INTERNAL_API_KEY。' : `接口返回 ${response.status}`);
+        if (!response.ok) throw new Error(response.status === 403 ? '受限数据需要有效的 INTERNAL_API_KEY。' : `接口返回 ${response.status}`);
         const data = await response.json();
         render(data);
         $('status').textContent = `已更新 · ${new Date(data.generated_at).toLocaleString('zh-CN')} · 范围：${data.scope.access_classes.join(' / ')}`;
@@ -605,10 +679,17 @@
         $('status').textContent = `读取失败：${error.message}`;
       }
     }
+    function syncAccessControl() {
+      const restricted = $('access').value === 'restricted';
+      $('api-key').disabled = !restricted;
+      $('api-key').setAttribute('aria-required', restricted ? 'true' : 'false');
+    }
     $('controls').addEventListener('submit', loadData);
+    $('access').addEventListener('change', syncAccessControl);
     $('relation-filter').addEventListener('change', () => { selectedGraphItem = null; renderRelationGraph(); });
     $('hide-self-relations').addEventListener('change', () => { selectedGraphItem = null; renderRelationGraph(); });
     $('entity-type-filter').addEventListener('change', (event) => { if (currentExtraction) renderMentionList(currentExtraction, event.target.value, null); });
+    syncAccessControl();
     loadData();
   </script>
 </body>

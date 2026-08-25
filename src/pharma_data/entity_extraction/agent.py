@@ -104,6 +104,11 @@ class EntityExtractAgent:
                 if not nearby or nearby[0][0] > 240:
                     continue
                 for _gap, indication in nearby[:1]:
+                    region = str(
+                        drug.metadata.get("region")
+                        or indication.metadata.get("region")
+                        or "unspecified"
+                    )
                     starts = [
                         value
                         for value in (drug.char_start, indication.char_start)
@@ -117,7 +122,7 @@ class EntityExtractAgent:
                             entity_type=EntityType.PIPELINE_PROGRAM,
                             original_text=f"{drug.original_text} / {indication.original_text}",
                             normalized_name=(
-                                f"{drug.normalized_name}|{indication.normalized_name}|unspecified"
+                                f"{drug.normalized_name}|{indication.normalized_name}|{region}"
                             ),
                             element_id=drug.element_id or indication.element_id,
                             char_start=min(starts) if starts else None,
@@ -130,7 +135,9 @@ class EntityExtractAgent:
                             metadata={
                                 "drug_mention_id": drug.mention_id,
                                 "indication_mention_id": indication.mention_id,
-                                "region": "unspecified",
+                                "region": region,
+                                "visual_observation": drug.metadata.get("visual_observation")
+                                or indication.metadata.get("visual_observation"),
                                 "utterance_id": drug.metadata.get("utterance_id"),
                             },
                         )
