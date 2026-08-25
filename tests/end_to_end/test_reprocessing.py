@@ -8,6 +8,7 @@ from pharma_data.orchestration.pipeline import PipelineRunner
 from pharma_data.storage.canonical.models import (
     AssertionRecord,
     DocumentElementRecord,
+    DocumentVersion,
     EntityMentionRecord,
     ProcessingJob,
 )
@@ -43,9 +44,20 @@ def test_explicit_reprocessing_does_not_duplicate_facts(db_session, tmp_path) ->
     )
     first_job = db_session.scalar(select(ProcessingJob))
     PipelineRunner(db_session).run(first_job.id)
+    version = db_session.get(DocumentVersion, first_job.document_version_id)
+    first_active_run_id = version.active_parse_run_id
     first_counts = (
-        db_session.scalar(select(func.count()).select_from(DocumentElementRecord)),
-        db_session.scalar(select(func.count()).select_from(EntityMentionRecord)),
+        db_session.scalar(
+            select(func.count())
+            .select_from(DocumentElementRecord)
+            .where(DocumentElementRecord.parse_run_id == first_active_run_id)
+        ),
+        db_session.scalar(
+            select(func.count())
+            .select_from(EntityMentionRecord)
+            .join(DocumentElementRecord, EntityMentionRecord.element_id == DocumentElementRecord.id)
+            .where(DocumentElementRecord.parse_run_id == first_active_run_id)
+        ),
         db_session.scalar(select(func.count()).select_from(AssertionRecord)),
     )
 
@@ -56,10 +68,23 @@ def test_explicit_reprocessing_does_not_duplicate_facts(db_session, tmp_path) ->
         component_version="0.1.0-reprocess-test",
     )
     PipelineRunner(db_session).run(second_job.id)
+    db_session.refresh(version)
+    second_active_run_id = version.active_parse_run_id
     second_counts = (
-        db_session.scalar(select(func.count()).select_from(DocumentElementRecord)),
-        db_session.scalar(select(func.count()).select_from(EntityMentionRecord)),
+        db_session.scalar(
+            select(func.count())
+            .select_from(DocumentElementRecord)
+            .where(DocumentElementRecord.parse_run_id == second_active_run_id)
+        ),
+        db_session.scalar(
+            select(func.count())
+            .select_from(EntityMentionRecord)
+            .join(DocumentElementRecord, EntityMentionRecord.element_id == DocumentElementRecord.id)
+            .where(DocumentElementRecord.parse_run_id == second_active_run_id)
+        ),
         db_session.scalar(select(func.count()).select_from(AssertionRecord)),
     )
 
     assert second_counts == first_counts
+    assert first_active_run_id != second_active_run_id
+    assert db_session.scalar(select(func.count()).select_from(DocumentElementRecord)) == 2

@@ -4,10 +4,14 @@ papers/
 *.doc
 *.docx
 data/objects/
+data/parser_outputs/
+data/public/
 data/restricted/
 data/runtime/
 data/exports/
 data/demo/
+output/
+tmp/
 models/
 indexes/
 audio/
@@ -28,6 +32,9 @@ backups/
 
 # Local tools and caches
 .venv/
+.venv-mineru/
+.pytest-*/
+.uv-cache-*/
 __pycache__/
 .pytest_cache/
 .ruff_cache/

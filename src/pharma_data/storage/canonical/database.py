@@ -1,6 +1,7 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 from functools import lru_cache
+from typing import Any
 
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -22,7 +23,7 @@ def get_engine(database_url: str | None = None) -> Engine:
     return engine
 
 
-def _enable_sqlite_foreign_keys(dbapi_connection: object, _: object) -> None:
+def _enable_sqlite_foreign_keys(dbapi_connection: Any, _: object) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()

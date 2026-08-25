@@ -6,7 +6,9 @@ from pharma_data.connectors.clinical import (
 )
 from pharma_data.connectors.earnings_calls import EarningsCallAdapter
 from pharma_data.connectors.financial_reports import FinancialReportAdapter
+from pharma_data.connectors.inbox import InboxAdapter
 from pharma_data.connectors.mainland import MainlandCatalogAdapter
+from pharma_data.connectors.market_data import MarketDataAdapter
 from pharma_data.connectors.news import NewsAdapter
 from pharma_data.connectors.research_reports import ResearchReportManifestAdapter
 
@@ -17,7 +19,9 @@ __all__ = [
     "EarningsCallAdapter",
     "FetchResult",
     "FinancialReportAdapter",
+    "InboxAdapter",
     "MainlandCatalogAdapter",
+    "MarketDataAdapter",
     "NewsAdapter",
     "ResearchReportManifestAdapter",
     "SourceAdapter",

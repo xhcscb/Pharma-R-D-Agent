@@ -1,6 +1,6 @@
 # 数据层操作手册
 
-本文面向数据管理员、标注复核人员和开发人员，覆盖从环境准备、五类数据导入到复核、投影、验收和停止服务的完整操作。第一次部署建议先阅读[快速启动](quickstart.md)，字段不清楚时查阅[数据清单编写指南](manifest_guide.md)。
+本文面向数据管理员、标注复核人员和开发人员，覆盖从环境准备、六类数据导入到复核、投影、验收和停止服务的完整操作。第一次部署建议先阅读[快速启动](quickstart.md)，字段不清楚时查阅[数据清单编写指南](manifest_guide.md)。
 
 ## 1. 操作边界
 
@@ -117,7 +117,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 如果 Docker 服务未就绪，先运行 `docker compose --profile full ps` 和 `docker compose --profile full logs --tail 200 SERVICE_NAME`。
 
-## 4. 导入五类数据
+## 4. 导入六类数据
 
 清单可以是 CSV、JSON 或 JSONL。相对 `local_path` 按清单文件所在目录解析。正式导入前先人工抽查 URL、许可、访问等级和文件哈希。
 
@@ -129,7 +129,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 docker compose --profile core exec api datactl ingest manifest manifests/examples/research_reports.csv --source-type research_reports
 ~~~
 
-默认应使用 `authorized_restricted` 和 `team_internal`。示例路径只是格式模板；运行前须替换为团队实际获授权文件。
+默认应使用 `authorized_restricted` 和 `restricted`。示例路径只是格式模板；运行前须替换为团队实际获授权文件。
 
 ### 4.2 临床数据
 
@@ -195,7 +195,17 @@ docker compose --profile core exec api datactl ingest manifest manifests/example
 .venv\Scripts\datactl.exe source sync cninfo_investor_relations --run-pipeline
 ~~~
 
-### 4.6 一键真实来源演示
+### 4.6 证券行情
+
+只导入团队已取得许可的交易所或合规数据终端导出文件：
+
+~~~powershell
+docker compose --profile core exec api datactl ingest manifest PATH_TO_MARKET_MANIFEST --source-type market_data
+~~~
+
+行情默认使用 `authorized_restricted + restricted`。至少保存交易所、证券代码、交易日、币种、复权口径、提供方、授权编号和导出时间。上交所、深交所和北交所办理入口及许可边界见[权威数据源配置](authoritative_sources.md)。
+
+### 4.7 一键真实来源演示
 
 ~~~powershell
 .venv\Scripts\datactl.exe source demo
@@ -298,6 +308,16 @@ Invoke-RestMethod -Headers $headers http://127.0.0.1:8000/v1/documents/DOCUMENT_
 
 所有公开导出都必须重新执行权限过滤。内部查询成功不代表内容可以公开。
 
+证据门控比较与摘要：
+
+~~~powershell
+docker compose --profile core exec api datactl reasoning ontology --query "营业收入"
+docker compose --profile core exec api datactl reasoning compare "比较甲公司和乙公司营业收入" --objects "甲公司,乙公司" --dimensions "company.revenue"
+docker compose --profile core exec api datactl reasoning summarize --entity "甲公司"
+~~~
+
+默认只读取已批准主张。`--include-candidates` 仅用于内部复核，候选主张会被标为 `revise`，不能直接发布。
+
 ## 9. 构建数据集快照
 
 准备 JSON 规格文件：
@@ -306,7 +326,7 @@ Invoke-RestMethod -Headers $headers http://127.0.0.1:8000/v1/documents/DOCUMENT_
 {
   "name": "phase2-validation-v1",
   "document_version_ids": ["VERSION_ID_1", "VERSION_ID_2"],
-  "access_class": "team_internal",
+  "access_class": "restricted",
   "created_by": "成员姓名",
   "specification": {
     "purpose": "机制验证",

@@ -8,6 +8,7 @@ from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
     Document,
+    DocumentElementRecord,
     DocumentVersion,
     EntityRecord,
     OutboxEventRecord,
@@ -24,6 +25,15 @@ class TimescaleProjector:
         "news_event",
         "assertion_version_event",
     )
+    market_metrics = {
+        "开盘价",
+        "收盘价",
+        "最高价",
+        "最低价",
+        "成交量",
+        "成交额",
+        "总市值",
+    }
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -67,7 +77,11 @@ class TimescaleProjector:
     def _target_tables(self, session: Session, assertion: AssertionRecord) -> set[str]:
         targets = {"assertion_version_event"}
         if assertion.predicate == "REPORTS":
-            targets.add("financial_metric_series")
+            metric_name = str(assertion.qualifiers.get("metric_name") or "")
+            if metric_name in self.market_metrics:
+                targets.add("market_price")
+            else:
+                targets.add("financial_metric_series")
         if assertion.predicate in {
             "SPONSORS",
             "IN_TRIAL",
@@ -78,7 +92,16 @@ class TimescaleProjector:
 
         evidence = session.scalar(
             select(AssertionEvidenceRecord)
+            .join(
+                DocumentVersion,
+                DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+            )
+            .join(
+                DocumentElementRecord,
+                DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+            )
             .where(AssertionEvidenceRecord.assertion_id == assertion.id)
+            .where(DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id)
             .limit(1)
         )
         if evidence is not None:
@@ -88,6 +111,8 @@ class TimescaleProjector:
                 targets.add("news_event")
             if document and document.document_type == "regulatory":
                 targets.add("regulatory_event")
+            if document and document.document_type == "market_data":
+                targets.add("market_price")
 
         subject = (
             session.get(EntityRecord, assertion.subject_entity_id)
@@ -104,7 +129,16 @@ class TimescaleProjector:
             raise ValueError("Only approved assertions may be projected")
         evidence = session.scalar(
             select(AssertionEvidenceRecord)
+            .join(
+                DocumentVersion,
+                DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+            )
+            .join(
+                DocumentElementRecord,
+                DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+            )
             .where(AssertionEvidenceRecord.assertion_id == assertion.id)
+            .where(DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id)
             .limit(1)
         )
         if evidence is None:
@@ -164,7 +198,25 @@ class TimescaleProjector:
                 connection.execute(text(f"TRUNCATE {table}"))
         assertions = list(
             session.scalars(
-                select(AssertionRecord).where(AssertionRecord.review_status == "approved")
+                select(AssertionRecord)
+                .join(
+                    AssertionEvidenceRecord,
+                    AssertionEvidenceRecord.assertion_id == AssertionRecord.id,
+                )
+                .join(
+                    DocumentVersion,
+                    DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+                )
+                .join(
+                    DocumentElementRecord,
+                    DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+                )
+                .where(
+                    AssertionRecord.review_status == "approved",
+                    DocumentElementRecord.parse_run_id
+                    == DocumentVersion.active_parse_run_id,
+                )
+                .distinct()
             )
         )
         counts = {table: 0 for table in self.tables}

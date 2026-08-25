@@ -12,13 +12,13 @@ class LicenseStatus(StrEnum):
 
 class AccessClass(StrEnum):
     PUBLIC = "public"
-    TEAM_INTERNAL = "team_internal"
     RESTRICTED = "restricted"
 
 
 class PipelineStatus(StrEnum):
     DISCOVERED = "DISCOVERED"
     FETCHED = "FETCHED"
+    PROCESSING = "PROCESSING"
     PARSED = "PARSED"
     ENTITY_EXTRACTED = "ENTITY_EXTRACTED"
     RELATION_EXTRACTED = "RELATION_EXTRACTED"
@@ -39,6 +39,7 @@ class DocumentType(StrEnum):
     NEWS = "news"
     EARNINGS_CALL = "earnings_call"
     REGULATORY = "regulatory"
+    MARKET_DATA = "market_data"
     OTHER = "other"
 
 

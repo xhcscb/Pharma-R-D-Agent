@@ -8,7 +8,7 @@ from pharma_data.parsers.common import make_element
 class PlainTextParser(Parser):
     name = "plain-text"
     version = "0.1.0"
-    media_types = {"text/plain", "text/markdown"}
+    media_types = {"text/plain", "text/markdown", "text/csv"}
 
     def parse(
         self,

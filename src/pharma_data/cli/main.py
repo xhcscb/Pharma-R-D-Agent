@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -18,15 +19,24 @@ from pharma_data.connectors import (
     EarningsCallAdapter,
     FinancialReportAdapter,
     MainlandCatalogAdapter,
+    MarketDataAdapter,
     NewsAdapter,
     ResearchReportManifestAdapter,
     SourceAdapter,
 )
 from pharma_data.connectors.http_client import authoritative_get
+from pharma_data.connectors.mainland import validate_mainland_url
 from pharma_data.contracts import AccessClass, ReviewStatus
 from pharma_data.datasets import DataQualityValidator, DatasetBenchmarkEvaluator
+from pharma_data.inbox import InboxCoordinator, build_inbox_coordinator
 from pharma_data.orchestration.ingestion import IngestionService
 from pharma_data.orchestration.pipeline import PipelineRunner
+from pharma_data.reasoning import (
+    CompareAgent,
+    MetricOntology,
+    SummarizeAgent,
+    build_claim_graph,
+)
 from pharma_data.storage.canonical import create_schema, session_scope
 from pharma_data.storage.canonical.database import get_engine
 from pharma_data.storage.canonical.models import Document, DocumentVersion, ProcessingJob
@@ -43,6 +53,8 @@ review_app = typer.Typer(help="Human review operations")
 projection_app = typer.Typer(help="Knowledge-store projections")
 dataset_app = typer.Typer(help="Dataset snapshot operations")
 eval_app = typer.Typer(help="Quality validation")
+reasoning_app = typer.Typer(help="Evidence-gated comparison and summarization")
+inbox_app = typer.Typer(help="Filesystem inbox, metadata, and archive operations")
 
 app.add_typer(db_app, name="db")
 app.add_typer(source_app, name="source")
@@ -52,6 +64,8 @@ app.add_typer(review_app, name="review")
 app.add_typer(projection_app, name="projection")
 app.add_typer(dataset_app, name="dataset")
 app.add_typer(eval_app, name="eval")
+app.add_typer(reasoning_app, name="reasoning")
+app.add_typer(inbox_app, name="inbox")
 
 
 MANIFEST_ADAPTERS = {
@@ -62,6 +76,7 @@ MANIFEST_ADAPTERS = {
     "financial_reports": FinancialReportAdapter,
     "news": NewsAdapter,
     "earnings_calls": EarningsCallAdapter,
+    "market_data": MarketDataAdapter,
 }
 
 SOURCE_CATALOG_PATH = Path("config/authoritative_sources.json")
@@ -99,6 +114,109 @@ def catalog_source(source_id: str) -> dict[str, Any]:
 
 def print_json(payload: Any) -> None:
     typer.echo(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
+
+
+def _inbox_coordinator() -> InboxCoordinator:
+    return build_inbox_coordinator(get_settings())
+
+
+@inbox_app.command("status")
+def inbox_status() -> None:
+    """查看待投递文件、归档回执和 metadata 复核状态。"""
+    print_json(_inbox_coordinator().status())
+
+
+@inbox_app.command("run")
+def inbox_run(
+    run_pipeline: bool = typer.Option(True, help="入库后立即执行解析、抽取和清洗"),
+    max_files: int | None = typer.Option(None, min=1, help="本批最多处理文件数"),
+    database: Path | None = typer.Option(None, help="可选的独立 SQLite 数据库路径"),
+    object_store: Path | None = typer.Option(None, help="可选的对象存储目录"),
+) -> None:
+    """扫描一次投递箱；后台持续模式由 worker 自动完成。"""
+    settings = get_settings()
+    resolved_store = object_store or settings.object_store_root
+    if database is None:
+        create_schema()
+        with session_scope() as session:
+            report = _inbox_coordinator().run_once(
+                session,
+                LocalObjectStore(resolved_store),
+                run_pipeline=run_pipeline,
+                max_files=max_files,
+            )
+    else:
+        database.parent.mkdir(parents=True, exist_ok=True)
+        engine = get_engine(f"sqlite:///{database.resolve().as_posix()}")
+        create_schema(engine)
+        with session_scope(engine) as session:
+            report = _inbox_coordinator().run_once(
+                session,
+                LocalObjectStore(resolved_store),
+                run_pipeline=run_pipeline,
+                max_files=max_files,
+            )
+    print_json(report)
+
+
+def _csv_values(value: str | None) -> list[str]:
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+@reasoning_app.command("ontology")
+def reasoning_ontology(query: str | None = typer.Option(None, help="按名称或别名筛选")) -> None:
+    ontology = MetricOntology.load(get_settings().metric_ontology_path)
+    dimensions = ontology.resolve(query) if query else ontology.dimensions
+    print_json({"dimensions": [item.model_dump(mode="json") for item in dimensions]})
+
+
+@reasoning_app.command("compare")
+def reasoning_compare(
+    query: str,
+    objects: str | None = typer.Option(None, help="逗号分隔的实体规范名"),
+    dimensions: str | None = typer.Option(None, help="逗号分隔的指标本体 id"),
+    include_candidates: bool = typer.Option(False, help="纳入候选主张供内部复核"),
+) -> None:
+    object_names = _csv_values(objects)
+    statuses = ("approved", "candidate", "pending") if include_candidates else ("approved",)
+    with session_scope() as session:
+        graph = build_claim_graph(
+            session,
+            allowed_access_classes=[item.value for item in AccessClass],
+            review_statuses=statuses,
+            entity_names=object_names or None,
+        )
+        agent = CompareAgent(MetricOntology.load(get_settings().metric_ontology_path))
+        try:
+            dsl = agent.compile(
+                query,
+                graph,
+                objects=object_names,
+                dimensions=_csv_values(dimensions),
+            )
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+        print_json(agent.run(dsl, graph).model_dump(mode="json"))
+
+
+@reasoning_app.command("summarize")
+def reasoning_summarize(
+    entity: str | None = typer.Option(None, help="实体规范名；留空则总结全部"),
+    max_claims: int = typer.Option(12, min=1, max=100),
+    include_candidates: bool = typer.Option(False, help="纳入候选主张供内部复核"),
+) -> None:
+    statuses = ("approved", "candidate", "pending") if include_candidates else ("approved",)
+    with session_scope() as session:
+        graph = build_claim_graph(
+            session,
+            allowed_access_classes=[item.value for item in AccessClass],
+            review_statuses=statuses,
+            entity_names=[entity] if entity else None,
+        )
+        result = SummarizeAgent(
+            MetricOntology.load(get_settings().metric_ontology_path)
+        ).run(graph, entity=entity, max_claims=max_claims)
+        print_json(result.model_dump(mode="json"))
 
 
 @db_app.command("migrate")
@@ -203,31 +321,59 @@ def source_doctor(
         access_mode = source["access_mode"]
         automation_level = source["automation_level"]
         probe_url = source.get("probe_url")
+        sample_records = [
+            item
+            for item in source.get("sample_records", [])
+            if isinstance(item, dict) and item.get("content_url")
+        ]
+        if sample_records:
+            ingestion_status = "SAMPLE_SYNC_READY"
+        elif access_mode == "authorized_manifest":
+            ingestion_status = "AUTHORIZATION_REQUIRED"
+        elif automation_level == "manual":
+            ingestion_status = "MANUAL_REQUIRED"
+        else:
+            ingestion_status = "MANIFEST_REQUIRED"
         result = {
             "source_id": source["source_id"],
             "jurisdiction": source["jurisdiction"],
             "access_mode": access_mode,
             "automation_level": automation_level,
-            "status": "READY" if automation_level != "manual" else "MANUAL_REQUIRED",
+            "sample_record_count": len(sample_records),
+            "ingestion_status": ingestion_status,
+            "status": ingestion_status,
         }
         if live and probe_url:
             headers = {"User-Agent": settings.http_user_agent}
             started = perf_counter()
             try:
+                allowed_domains = tuple(
+                    str(item).lower() for item in source.get("allowed_domains", [])
+                )
+                url_validator = partial(
+                    validate_mainland_url,
+                    allowed_domains=allowed_domains,
+                    source_name=str(source["source_id"]),
+                )
                 response = authoritative_get(
                     str(probe_url),
                     headers=headers,
                     timeout=30,
                     attempts=2,
+                    url_validator=url_validator,
                 )
                 result.update(
                     status=("OK" if response.status_code == 200 else "REACHABLE_WITH_RESTRICTIONS"),
+                    connectivity_status=(
+                        "OK" if response.status_code == 200 else "REACHABLE_WITH_RESTRICTIONS"
+                    ),
                     http_status=response.status_code,
                     latency_ms=round((perf_counter() - started) * 1000),
                 )
             except Exception as exc:  # noqa: BLE001 - doctor must report every source
                 result.update(
                     status="UNAVAILABLE",
+                    connectivity_status="UNAVAILABLE",
                     detail=f"{type(exc).__name__}: {exc}",
                     latency_ms=round((perf_counter() - started) * 1000),
                 )
@@ -252,6 +398,7 @@ def source_demo(
     database: Path = typer.Option(Path("data/demo/china-mainland-demo.db")),
     object_store: Path = typer.Option(Path("data/demo/china-mainland-objects")),
     report_path: Path = typer.Option(Path("data/demo/china-mainland-demo-report.json")),
+    strict: bool = typer.Option(False, help="任一官方样本失败时返回非零退出码"),
 ) -> None:
     """下载中国大陆官方小样本并跑通解析、抽取和清洗。"""
     database.parent.mkdir(parents=True, exist_ok=True)
@@ -306,11 +453,36 @@ def source_demo(
     demo_report["successful_sources"] = sum(
         item["status"] == "OK" for item in demo_report["sources"]
     )
+    demo_report["pipeline_executed_sources"] = sum(
+        bool(item.get("pipeline")) for item in demo_report["sources"]
+    )
+    demo_report["empty_parse_sources"] = [
+        item["source"]
+        for item in demo_report["sources"]
+        if item.get("pipeline")
+        and not any(
+            int(run.get("elements", 0)) + int(run.get("utterances", 0)) > 0
+            for run in item["pipeline"]
+        )
+    ]
+    demo_report["sources_with_assertions"] = sum(
+        any(int(run.get("assertions", 0)) > 0 for run in item.get("pipeline", []))
+        for item in demo_report["sources"]
+    )
+    demo_report["mechanical_e2e_passed"] = (
+        demo_report["successful_sources"] == len(demo_source_ids)
+        and not demo_report["empty_parse_sources"]
+    )
+    with session_scope(engine) as session:
+        demo_report["data_quality"] = DataQualityValidator(session).run()
+    demo_report["research_ready"] = demo_report["data_quality"]["passed"]
     report_path.write_text(
         json.dumps(demo_report, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",
     )
     print_json(demo_report)
+    if strict and not demo_report["mechanical_e2e_passed"]:
+        raise typer.Exit(1)
 
 
 @source_app.command("sync")
@@ -455,7 +627,7 @@ def dataset_build(spec: Path) -> None:
             name=payload["name"],
             specification=payload.get("specification", {}),
             manifest={"document_version_ids": payload["document_version_ids"]},
-            access_class=AccessClass(payload.get("access_class", "team_internal")),
+            access_class=AccessClass(payload.get("access_class", "restricted")),
             created_by=payload["created_by"],
         )
         print_json(

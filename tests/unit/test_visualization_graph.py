@@ -4,9 +4,13 @@ from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
     Document,
+    DocumentAccessGrantRecord,
+    DocumentElementRecord,
     DocumentVersion,
     EntityMentionRecord,
     EntityRecord,
+    ProcessingJob,
+    ProcessingRun,
     RawArtifactRecord,
     SourceRecord,
     SourceRegistry,
@@ -29,7 +33,7 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
         title="官方关系样例",
         document_type="financial_report",
         license_status="public_access",
-        access_class="team_internal",
+        access_class="restricted",
         record_hash="1" * 64,
     )
     db_session.add(source_record)
@@ -41,7 +45,7 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
         content_hash="2" * 64,
         size_bytes=128,
         license_status="public_access",
-        access_class="team_internal",
+        access_class="restricted",
     )
     document = Document(
         stable_key="official_fixture:FIXTURE-1",
@@ -57,11 +61,54 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
         artifact_id=artifact.id,
         content_hash="3" * 64,
         license_status="public_access",
-        access_class="team_internal",
+        access_class="restricted",
     )
     db_session.add(version)
     db_session.flush()
     document.current_version_id = version.id
+    db_session.add(
+        DocumentAccessGrantRecord(
+            document_version_id=version.id,
+            source_record_id=source_record.id,
+            access_class="restricted",
+            license_status="public_access",
+            provenance_status="fixture",
+        )
+    )
+    job = ProcessingJob(
+        document_version_id=version.id,
+        pipeline_step="fixture",
+        status="NEEDS_REVIEW",
+        idempotency_key="fixture-active-run",
+    )
+    db_session.add(job)
+    db_session.flush()
+    run = ProcessingRun(
+        job_id=job.id,
+        trace_id="fixture-trace",
+        producer="fixture",
+        producer_version="1",
+        schema_version="2.0",
+        input_hash=version.content_hash,
+        status="NEEDS_REVIEW",
+    )
+    db_session.add(run)
+    db_session.flush()
+    version.active_parse_run_id = run.id
+    element = DocumentElementRecord(
+        document_version_id=version.id,
+        parse_run_id=run.id,
+        page_number=7,
+        element_type="paragraph",
+        reading_order=0,
+        text="样例药物作用于样例靶点。",
+        parser_name="fixture",
+        parser_version="1",
+        confidence=1.0,
+        content_hash="5" * 64,
+    )
+    db_session.add(element)
+    db_session.flush()
 
     drug = EntityRecord(
         entity_type="Drug",
@@ -79,6 +126,7 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
     db_session.flush()
     drug_mention = EntityMentionRecord(
         document_version_id=version.id,
+        element_id=element.id,
         entity_id=drug.id,
         entity_type="Drug",
         original_text="样例药物",
@@ -89,6 +137,7 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
     )
     target_mention = EntityMentionRecord(
         document_version_id=version.id,
+        element_id=element.id,
         entity_id=target.id,
         entity_type="Target",
         original_text="样例靶点",
@@ -117,6 +166,7 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
         AssertionEvidenceRecord(
             assertion_id=assertion.id,
             document_version_id=version.id,
+            element_id=element.id,
             evidence_role="support",
             evidence_text="样例药物作用于样例靶点。",
             page_number=7,
@@ -124,12 +174,11 @@ def test_relation_graph_keeps_candidate_edge_and_evidence(db_session: Session) -
     )
     db_session.flush()
 
-    graph = build_relation_graph(db_session, ["public", "team_internal"])
+    graph = build_relation_graph(db_session, ["public", "restricted"])
 
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
     assert graph["edges"][0]["predicate"] == "TARGETS"
     assert graph["edges"][0]["page_number"] == 7
     assert graph["edges"][0]["evidence"] == "样例药物作用于样例靶点。"
-    assert build_entity_extraction_example(db_session, ["public", "team_internal"]) is None
-
+    assert build_entity_extraction_example(db_session, ["public", "restricted"]) is None

@@ -47,6 +47,58 @@ def test_entities_relations_and_evidence_are_linked() -> None:
     assert all(assertion.evidence_element_id == element.element_id for assertion in assertions)
 
 
+def test_mainland_ctr_record_yields_trial_drug_indication_and_stage_relations() -> None:
+    text = (
+        "CTR20260083进行中招募中，HRS-8080片用于治疗乳腺癌，"
+        "开展多中心开放随机对照III期临床研究。"
+    )
+    element = make_element(
+        document_version_id="version",
+        element_type=ElementType.PARAGRAPH,
+        reading_order=0,
+        text=text,
+        parser_name="test",
+        parser_version="1",
+    )
+    parsed = ParsedDocument(
+        document_id="doc",
+        document_version_id="version",
+        document_type=DocumentType.CLINICAL_RECORD,
+        elements=[element],
+    )
+    mentions = EntityExtractAgent(
+        [DictionaryExtractor("config/entities.json"), PatternExtractor()]
+    ).extract(parsed)
+    assertions = RelationExtractAgent().extract(parsed, mentions)
+
+    predicates = {assertion.predicate for assertion in assertions}
+    assert RelationType.TREATS in predicates
+    assert RelationType.IN_TRIAL in predicates
+    assert RelationType.HAS_STAGE in predicates
+
+
+def test_distant_company_mentions_do_not_create_combinatorial_partnerships() -> None:
+    text = "恒瑞医药" + ("无关披露" * 150) + "百济神州与第三方开展合作。"
+    element = make_element(
+        document_version_id="version",
+        element_type=ElementType.PARAGRAPH,
+        reading_order=0,
+        text=text,
+        parser_name="test",
+        parser_version="1",
+    )
+    parsed = ParsedDocument(
+        document_id="doc",
+        document_version_id="version",
+        document_type=DocumentType.FINANCIAL_REPORT,
+        elements=[element],
+    )
+    mentions = EntityExtractAgent([DictionaryExtractor("config/entities.json")]).extract(parsed)
+    assertions = RelationExtractAgent().extract(parsed, mentions)
+
+    assert all(assertion.predicate != RelationType.PARTNERS_WITH for assertion in assertions)
+
+
 def test_conflicting_values_are_preserved() -> None:
     from pharma_data.contracts import AssertionCandidate, EntityMention, EntityType
 

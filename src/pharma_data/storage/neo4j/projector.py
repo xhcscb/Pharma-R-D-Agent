@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -5,6 +7,8 @@ from pharma_data.config import Settings
 from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
+    DocumentElementRecord,
+    DocumentVersion,
     EntityRecord,
     OutboxEventRecord,
 )
@@ -16,7 +20,7 @@ class Neo4jProjector:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    def _driver(self):
+    def _driver(self) -> Any:
         from neo4j import GraphDatabase
 
         return GraphDatabase.driver(
@@ -40,7 +44,16 @@ class Neo4jProjector:
         )
         evidence = session.scalar(
             select(AssertionEvidenceRecord)
+            .join(
+                DocumentVersion,
+                DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+            )
+            .join(
+                DocumentElementRecord,
+                DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+            )
             .where(AssertionEvidenceRecord.assertion_id == assertion.id)
+            .where(DocumentElementRecord.parse_run_id == DocumentVersion.active_parse_run_id)
             .limit(1)
         )
         if subject is None or subject.review_status != "approved":
@@ -91,7 +104,25 @@ class Neo4jProjector:
     def rebuild(self, session: Session) -> dict[str, int]:
         assertions = list(
             session.scalars(
-                select(AssertionRecord).where(AssertionRecord.review_status == "approved")
+                select(AssertionRecord)
+                .join(
+                    AssertionEvidenceRecord,
+                    AssertionEvidenceRecord.assertion_id == AssertionRecord.id,
+                )
+                .join(
+                    DocumentVersion,
+                    DocumentVersion.id == AssertionEvidenceRecord.document_version_id,
+                )
+                .join(
+                    DocumentElementRecord,
+                    DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+                )
+                .where(
+                    AssertionRecord.review_status == "approved",
+                    DocumentElementRecord.parse_run_id
+                    == DocumentVersion.active_parse_run_id,
+                )
+                .distinct()
             )
         )
         with self._driver() as driver:

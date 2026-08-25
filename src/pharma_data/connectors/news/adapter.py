@@ -63,7 +63,7 @@ class NewsAdapter(ManifestSourceAdapter):
                     published_at=self._published_at(pub_date),
                     content_urls=[link],
                     license_status=LicenseStatus.PUBLIC_ACCESS,
-                    access_class=AccessClass.TEAM_INTERNAL,
+                    access_class=AccessClass.RESTRICTED,
                     document_type=DocumentType.NEWS,
                     raw_metadata={"_content_url": link, "rss_url": rss_url},
                 )
@@ -91,7 +91,7 @@ class NewsAdapter(ManifestSourceAdapter):
                     published_at=self._published_at(published or updated),
                     content_urls=[link],
                     license_status=LicenseStatus.PUBLIC_ACCESS,
-                    access_class=AccessClass.TEAM_INTERNAL,
+                    access_class=AccessClass.RESTRICTED,
                     document_type=DocumentType.NEWS,
                     raw_metadata={"_content_url": link, "rss_url": rss_url},
                 )

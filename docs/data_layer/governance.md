@@ -16,7 +16,7 @@
 - `prohibited`；
 - `unknown`。
 
-`public_access` 表示公众可以访问，但只允许团队内部解析和派生使用，不能据此公开再分发全文。`unknown` 和 `prohibited` 记录只保留元数据并进入隔离区，不下载正文。公开数据快照只能包含 `public` 文档版本。受限原始文件不得进入 Git。
+`public_access` 表示公众可以访问，但不能单凭此推定全文可公开再分发。`unknown` 和 `prohibited` 记录只保留元数据并进入隔离区，不下载正文。公开数据快照只能包含 `public` 文档版本。原始文件均不得进入 Git。
 
 ## 证据与复核
 

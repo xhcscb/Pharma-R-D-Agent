@@ -84,7 +84,7 @@ class ManifestSourceAdapter(SourceAdapter):
         access_default = (
             AccessClass.PUBLIC
             if license_status == LicenseStatus.PUBLIC
-            else AccessClass.TEAM_INTERNAL
+            else AccessClass.RESTRICTED
         )
         access_class = AccessClass(row.get("access_class") or access_default.value)
         local_path = row.get("local_path")

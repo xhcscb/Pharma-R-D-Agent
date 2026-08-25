@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from pharma_data.connectors.news import NewsAdapter
 from pharma_data.connectors.research_reports import ResearchReportManifestAdapter
 from pharma_data.contracts import AccessClass, ReviewStatus
+from pharma_data.datasets import DataQualityValidator
 from pharma_data.orchestration.ingestion import IngestionService
 from pharma_data.storage.canonical.models import (
     AssertionRecord,
@@ -15,6 +16,14 @@ from pharma_data.storage.canonical.models import (
 )
 from pharma_data.storage.canonical.repository import CanonicalRepository
 from pharma_data.storage.object_store import LocalObjectStore
+
+
+def test_empty_database_is_not_production_ready(db_session) -> None:
+    report = DataQualityValidator(db_session).run()
+
+    assert report["passed"] is False
+    assert report["checks"]["non_empty_corpus"] is False
+    assert report["checks"]["approved_assertions_present"] is False
 
 
 def test_unresolved_license_is_metadata_only_and_quarantined(db_session, tmp_path) -> None:
@@ -29,7 +38,7 @@ def test_unresolved_license_is_metadata_only_and_quarantined(db_session, tmp_pat
                     "title": "Unknown-license record",
                     "local_path": str(article),
                     "license_status": "unknown",
-                    "access_class": "team_internal",
+                    "access_class": "restricted",
                 }
             ]
         ),
@@ -93,7 +102,7 @@ def test_publicly_accessible_version_cannot_enter_public_snapshot(db_session, tm
                     "title": "官方公开页面",
                     "local_path": str(page),
                     "license_status": "public_access",
-                    "access_class": "team_internal",
+                    "access_class": "restricted",
                 }
             ]
         ),

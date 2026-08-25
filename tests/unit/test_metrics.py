@@ -55,3 +55,10 @@ def test_complete_perfect_benchmark_passes_all_gates() -> None:
 
     assert report["passed"] is True
     assert all(check["passed"] for check in report["checks"].values())
+
+
+def test_empty_benchmark_cannot_pass_release_gates() -> None:
+    report = DatasetBenchmarkEvaluator().evaluate({})
+
+    assert report["passed"] is False
+    assert set(report["missing_required_sets"]) == set(report["coverage"])

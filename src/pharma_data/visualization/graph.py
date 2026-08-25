@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, aliased
 
+from pharma_data.storage.canonical.access import visible_version_ids
 from pharma_data.storage.canonical.models import (
     AssertionEvidenceRecord,
     AssertionRecord,
@@ -15,10 +16,14 @@ from pharma_data.storage.canonical.models import (
 
 
 def _current_versions(allowed_access_classes: list[str]) -> Any:
+    visible = visible_version_ids(allowed_access_classes).subquery()
     return (
-        select(DocumentVersion.id.label("id"))
+        select(
+            DocumentVersion.id.label("id"),
+            DocumentVersion.active_parse_run_id.label("active_parse_run_id"),
+        )
         .join(Document, Document.current_version_id == DocumentVersion.id)
-        .where(DocumentVersion.access_class.in_(allowed_access_classes))
+        .join(visible, visible.c.id == DocumentVersion.id)
         .subquery()
     )
 
@@ -59,6 +64,11 @@ def build_relation_graph(
             current_versions,
             current_versions.c.id == AssertionEvidenceRecord.document_version_id,
         )
+        .join(
+            DocumentElementRecord,
+            DocumentElementRecord.id == AssertionEvidenceRecord.element_id,
+        )
+        .where(DocumentElementRecord.parse_run_id == current_versions.c.active_parse_run_id)
         .join(subject, subject.id == AssertionRecord.subject_mention_id)
         .outerjoin(object_mention, object_mention.id == AssertionRecord.object_mention_id)
         .join(DocumentVersion, DocumentVersion.id == AssertionEvidenceRecord.document_version_id)
@@ -75,10 +85,18 @@ def build_relation_graph(
                 func.count(EntityMentionRecord.id),
             )
             .join(
-                current_versions,
-                current_versions.c.id == EntityMentionRecord.document_version_id,
+                DocumentElementRecord,
+                DocumentElementRecord.id == EntityMentionRecord.element_id,
             )
-            .where(EntityMentionRecord.entity_id.is_not(None))
+            .join(
+                current_versions,
+                current_versions.c.id == DocumentElementRecord.document_version_id,
+            )
+            .where(
+                EntityMentionRecord.entity_id.is_not(None),
+                DocumentElementRecord.parse_run_id
+                == current_versions.c.active_parse_run_id,
+            )
             .group_by(EntityMentionRecord.entity_id)
         )
         if entity_id is not None
@@ -216,7 +234,10 @@ def build_entity_extraction_example(
             current_versions,
             current_versions.c.id == DocumentElementRecord.document_version_id,
         )
-        .where(DocumentElementRecord.element_type == "table")
+        .where(
+            DocumentElementRecord.element_type == "table",
+            DocumentElementRecord.parse_run_id == current_versions.c.active_parse_run_id,
+        )
         .group_by(DocumentElementRecord.id)
         .order_by(
             func.count(func.distinct(EntityMentionRecord.entity_type)).desc(),

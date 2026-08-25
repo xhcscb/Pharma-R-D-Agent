@@ -8,19 +8,25 @@
 - 论文调研执行入口：[research/README.md](research/README.md)
 - 第一阶段详细计划：[docs/research/phase1_literature_research_plan.md](docs/research/phase1_literature_research_plan.md)
 - 数据层文档入口：[docs/data_layer/README.md](docs/data_layer/README.md)
+- 正式目标符合性矩阵：[docs/formal_goal_traceability.md](docs/formal_goal_traceability.md)
+- 正式数据接入步骤：[docs/data_layer/production_activation.md](docs/data_layer/production_activation.md)
+- 文件投递与自动归档：[docs/data_layer/inbox.md](docs/data_layer/inbox.md)
 - 数据层可视化：[docs/data_layer/visualization.md](docs/data_layer/visualization.md)
 - 团队协作规范：[CONTRIBUTING.md](CONTRIBUTING.md)
 
+远程仓库：[xhcscb/Pharma-R-D-Agent](https://github.com/xhcscb/Pharma-R-D-Agent)。长期分支为 `main`、`develop` 和 `research/phase1-literature`；短期功能分支合并后删除。
+
 ## 当前真实状态
 
-截至 2026-08-09：
+截至 2026-08-23：
 
 | 模块 | 已完成 | 尚未完成 |
 |---|---|---|
 | 论文调研 | RQ1—RQ8、协议、检索模板、18 篇种子元数据、15 篇锚点队列、证据与评测模板 | 正式检索、种子召回测试、50 篇筛选校准、双人全文筛选、40 篇深读和 D01—D10 冻结 |
-| 数据层 | 五类接入、文档解析、实体/关系抽取、清洗、复核、统一事实库、四类投影接口、REST、GraphQL、CLI 和可视化 | 真实 Gold 语料质量门、生产级模型调优、四类外部数据库的正式在线验收 |
+| 数据层 | 六类接入、文件投递箱、自动 metadata/哈希归档、文档解析、实体/关系抽取、清洗、复核、统一事实库、推理交接接口和可视化；三份 2026 财报机械端到端通过 | 三份财报官方 URL/发布日期、真实授权覆盖、Gold 质量门、生产级模型调优、四类外部数据库在线验收 |
+| 公共机制与智能体 | Metric Ontology、Claim Graph、Evidence Gate、Compare、Summarize 的可运行规则基线与 REST/CLI | D02/D04/D05/D06/D07/D10 冻结、学习型方法实验和 3—5 个正式案例 |
 
-当前 Python 包版本为 `0.2.0`。`data-layer-v1.0.0` 和 `research-phase1-v1.0` 均未达到创建条件；通过脚手架测试或演示数据不等于完成正式验收。
+当前 Python 包版本为 `0.3.0`。`data-layer-v1.0.0` 和 `research-phase1-v1.0` 均未达到创建条件；通过脚手架测试或演示数据不等于完成正式验收。
 
 ## 数据层最短演示
 
@@ -34,7 +40,9 @@ uv run datactl source demo
 uv run uvicorn pharma_data.api.app:app --host 127.0.0.1 --port 8000
 ~~~
 
-打开 `http://127.0.0.1:8000/demo/data-layer`，选择“团队内部”，并填写 `.env` 中的 `INTERNAL_API_KEY`。页面可查看解析元素、实体高亮、候选关系图、证据位置和复核状态。
+日常使用不再需要手写 Manifest：可公开文件放入 `data/public`，受限文件放入 `data/restricted`，运行 `uv run datactl inbox run`；或保持 worker 运行以自动扫描。详细规则见[文件投递箱说明](docs/data_layer/inbox.md)。
+
+打开 `http://127.0.0.1:8000/demo/data-layer`：“公开数据”无需 Key；“受限数据”需填写 `.env` 中的 `INTERNAL_API_KEY`。页面可查看解析元素、实体高亮、候选关系图、证据位置和复核状态。
 
 Docker 核心服务：
 
@@ -44,6 +52,15 @@ docker compose --profile core up -d --build
 docker compose --profile core exec api alembic upgrade head
 Invoke-RestMethod http://127.0.0.1:8000/health
 ~~~
+
+默认镜像只安装核心数据层依赖（已包含可检索 PDF 解析），避免 API/Worker 镜像被 CUDA 等非必需包拖慢。只有在需要 OCR、音频或本地 ML 时再按需构建，例如：
+
+~~~powershell
+$env:PHARMA_EXTRAS = "documents"
+docker compose --profile core up -d --build
+~~~
+
+Compose 默认把 PostgreSQL 正式回执分别写入 `data/public/_metadata/docker-production` 和 `data/restricted/_metadata/docker-production`，与本机 SQLite 试跑回执隔离。
 
 本机 CLI 使用 SQLite 或 `localhost`；`postgres`、`neo4j` 等名称只在 Compose 网络内部可解析。完整说明见[快速启动](docs/data_layer/quickstart.md)。
 

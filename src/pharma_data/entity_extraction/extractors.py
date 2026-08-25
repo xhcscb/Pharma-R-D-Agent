@@ -98,7 +98,16 @@ class PatternExtractor:
     name = "pattern"
 
     PATTERNS: list[tuple[EntityType, re.Pattern[str], float]] = [
-        (EntityType.CLINICAL_TRIAL, re.compile(r"\bNCT\d{8}\b", re.I), 0.99),
+        (
+            EntityType.CLINICAL_TRIAL,
+            re.compile(r"(?<![A-Za-z0-9])NCT\d{8}(?![A-Za-z0-9])", re.I),
+            0.99,
+        ),
+        (
+            EntityType.CLINICAL_TRIAL,
+            re.compile(r"(?<![A-Za-z0-9])CTR\d{8}(?![A-Za-z0-9])", re.I),
+            0.99,
+        ),
         (
             EntityType.CLINICAL_STAGE,
             re.compile(
@@ -133,7 +142,16 @@ class PatternExtractor:
         (
             EntityType.FINANCIAL_METRIC,
             re.compile(
-                r"(?:\u8425\u4e1a\u6536\u5165|\u7814\u53d1\u8d39\u7528|\u51c0\u5229\u6da6|\u6bdb\u5229\u7387|\u7ecf\u8425\u73b0\u91d1\u6d41|\u6bcf\u80a1\u6536\u76ca|EPS)"
+                r"(?:归属于(?:上市公司|母公司)股东的净利润|"
+                r"扣除非经常性损益后的净利润|归属于母公司所有者权益|"
+                r"被合并方(?:在合并前实现的|实现的)?净利润|"
+                r"经营活动产生的现金流量净额|所有者权益合计|股东权益合计|"
+                r"资产总计|负债合计|营业收入|研发费用|"
+                r"(?:累计|费用化|资本化)研发投入|研发投入|净利润|"
+                r"基本每股收益|稀释每股收益|每股收益|毛利率|"
+                r"经营现金流|总资产|总负债|货币资金|应收账款|存货|"
+                r"固定资产|无形资产|EPS|开盘价|收盘价|最高价|最低价|"
+                r"成交量|成交额|总市值)"
             ),
             0.96,
         ),
@@ -187,6 +205,69 @@ class PatternExtractor:
                 )
         return mentions
 
+
+class VisualSemanticExtractor:
+    """Create grounded mentions from verified visual observations."""
+
+    name = "visual_semantics"
+
+    def extract(self, document: ParsedDocument) -> list[EntityMention]:
+        mentions: list[EntityMention] = []
+        for element in document.elements:
+            payload = element.structured_payload.get("visual_semantics", {})
+            if not isinstance(payload, dict) or payload.get("status") != "verified":
+                continue
+            observation = payload.get("observation")
+            if not isinstance(observation, dict):
+                continue
+            confidence = float(observation.get("confidence") or element.confidence)
+            fields = (
+                ("drug", EntityType.DRUG, str(observation.get("drug") or "")),
+                ("target", EntityType.TARGET, str(observation.get("target") or "")),
+                (
+                    "indication",
+                    EntityType.INDICATION,
+                    str(observation.get("indication") or ""),
+                ),
+                ("region", EntityType.REGION, str(observation.get("region") or "")),
+                (
+                    "stage",
+                    EntityType.CLINICAL_STAGE,
+                    str(observation.get("stage_label") or ""),
+                ),
+            )
+            search_from = 0
+            for field, entity_type, value in fields:
+                if not value:
+                    continue
+                start = element.text.find(value, search_from)
+                if start < 0:
+                    start = element.text.find(value)
+                end = start + len(value) if start >= 0 else None
+                normalized = value.upper() if entity_type == EntityType.TARGET else value
+                mentions.append(
+                    EntityMention(
+                        entity_type=entity_type,
+                        original_text=value,
+                        normalized_name=normalized,
+                        element_id=element.element_id,
+                        char_start=start if start >= 0 else None,
+                        char_end=end,
+                        extraction_method=self.name,
+                        confidence=confidence,
+                        link_status=ReviewStatus.PENDING,
+                        metadata={
+                            "visual_field": field,
+                            "visual_observation": observation,
+                            "region": observation.get("region") or "unspecified",
+                            "stage_normalized": observation.get("stage"),
+                            "source_element_id": payload.get("source_element_id"),
+                        },
+                    )
+                )
+                if end is not None:
+                    search_from = end
+        return mentions
 
 class TransformerNERExtractor:
     name = "transformer_ner"

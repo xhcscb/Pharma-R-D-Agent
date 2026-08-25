@@ -1,6 +1,7 @@
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
+from urllib.parse import urljoin
 
 import httpx
 
@@ -14,15 +15,36 @@ def authoritative_get(
     headers: Mapping[str, str] | None = None,
     timeout: float = 60,
     attempts: int = 4,
+    max_redirects: int = 5,
+    url_validator: Callable[[str], None] | None = None,
 ) -> httpx.Response:
-    """执行带有限重试的只读请求，并保留最终响应供调用方审计。"""
+    """执行带有限重试的只读请求，并在每次重定向前校验目标地址。"""
     last_response: httpx.Response | None = None
     last_error: httpx.RequestError | None = None
     for attempt in range(attempts):
         try:
-            with httpx.Client(follow_redirects=True, timeout=timeout) as client:
-                response = client.get(url, params=params, headers=headers)
-            last_response = response
+            current_url = url
+            current_params = params
+            with httpx.Client(follow_redirects=False, timeout=timeout) as client:
+                for redirect_count in range(max_redirects + 1):
+                    if url_validator is not None:
+                        url_validator(current_url)
+                    response = client.get(current_url, params=current_params, headers=headers)
+                    last_response = response
+                    if url_validator is not None:
+                        url_validator(str(response.url))
+                    if not response.is_redirect:
+                        break
+                    location = response.headers.get("location")
+                    if not location:
+                        response.raise_for_status()
+                    if redirect_count >= max_redirects:
+                        raise httpx.TooManyRedirects(
+                            "权威来源重定向次数超过限制",
+                            request=response.request,
+                        )
+                    current_url = urljoin(str(response.url), location)
+                    current_params = None
             if response.status_code not in RETRYABLE_STATUS_CODES:
                 response.raise_for_status()
                 return response

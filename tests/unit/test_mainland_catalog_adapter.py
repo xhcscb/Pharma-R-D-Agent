@@ -1,3 +1,4 @@
+import pytest
 import respx
 from httpx import Response
 
@@ -40,7 +41,7 @@ def test_mainland_catalog_adapter_fetches_allowlisted_official_record() -> None:
     fetched = adapter.fetch(page.records[0])[0]
 
     assert page.records[0].license_status == LicenseStatus.PUBLIC_ACCESS
-    assert page.records[0].access_class == AccessClass.TEAM_INTERNAL
+    assert page.records[0].access_class == AccessClass.RESTRICTED
     assert fetched.media_type == "text/html"
     assert "医保目录".encode() in fetched.content
 
@@ -61,3 +62,34 @@ def test_mainland_catalog_adapter_rejects_non_allowlisted_domain() -> None:
         assert "白名单" in str(exc)
     else:
         raise AssertionError("非白名单域名不应进入数据层")
+
+
+@respx.mock
+def test_mainland_catalog_adapter_rejects_redirect_before_foreign_fetch() -> None:
+    official_url = "https://www.nhsa.gov.cn/example.html"
+    foreign_url = "https://example.com/redirected"
+    respx.get(official_url).mock(return_value=Response(302, headers={"location": foreign_url}))
+    foreign_route = respx.get(foreign_url).mock(return_value=Response(200, text="not official"))
+    adapter = MainlandCatalogAdapter(source_config())
+    record = adapter.discover({}).records[0]
+
+    with pytest.raises(ValueError, match="白名单"):
+        adapter.fetch(record)
+
+    assert foreign_route.called is False
+
+
+@respx.mock
+def test_mainland_catalog_adapter_rejects_script_challenge_page() -> None:
+    respx.get("https://www.nhsa.gov.cn/example.html").mock(
+        return_value=Response(
+            200,
+            text="<html><head><script>challenge()</script></head><body><script>go()</script></body></html>",
+            headers={"content-type": "text/html"},
+        )
+    )
+    adapter = MainlandCatalogAdapter(source_config())
+    record = adapter.discover({}).records[0]
+
+    with pytest.raises(ValueError, match="脚本校验或访问限制"):
+        adapter.fetch(record)

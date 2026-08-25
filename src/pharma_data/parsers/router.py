@@ -5,6 +5,7 @@ from pharma_data.parsers.audio import AudioParser
 from pharma_data.parsers.base import Parser
 from pharma_data.parsers.html import HtmlParser
 from pharma_data.parsers.image import ImageParser
+from pharma_data.parsers.market_data import MarketDataParser
 from pharma_data.parsers.pdf_hybrid import HybridPdfParser
 from pharma_data.parsers.structured import JsonParser, SpreadsheetParser, XbrlParser
 from pharma_data.parsers.text import PlainTextParser
@@ -48,7 +49,11 @@ class DocumentParser:
         artifact_id: str,
     ) -> ParsedDocument:
         resolved = Path(path)
-        parser = self.router.resolve(media_type, resolved)
+        parser = (
+            MarketDataParser()
+            if document_type == DocumentType.MARKET_DATA
+            else self.router.resolve(media_type, resolved)
+        )
         return parser.parse(
             resolved,
             document_id=document_id,

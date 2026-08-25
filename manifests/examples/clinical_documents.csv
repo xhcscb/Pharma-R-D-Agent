@@ -1,2 +1,2 @@
 source_record_id,title,published_at,canonical_url,content_url,local_path,license_status,access_class,registry_id
-NMPA-SERVICE-CLINICAL-TRIAL-REGISTRATION,国家药监局政务服务：药物临床试验登记,,https://zwfw.nmpa.gov.cn/web/taskview/11100000MB0341032Y100207202900001,https://zwfw.nmpa.gov.cn/web/taskview/11100000MB0341032Y100207202900001,,public_access,team_internal,NMPA-SERVICE
+NMPA-SERVICE-CLINICAL-TRIAL-REGISTRATION,国家药监局政务服务：药物临床试验登记,,https://zwfw.nmpa.gov.cn/web/taskview/11100000MB0341032Y100207202900001,https://zwfw.nmpa.gov.cn/web/taskview/11100000MB0341032Y100207202900001,,public_access,restricted,NMPA-SERVICE

@@ -1,0 +1,29 @@
+[
+  {
+    "content_hash": "75450959cd65ea24b079b248b5782407d86f50c465eb01bab7b5f2774ee7b0ca",
+    "source_name": "cninfo",
+    "source_record_id": "1225489903",
+    "canonical_url": "https://static.cninfo.com.cn/finalpage/2026-08-22/1225489903.PDF",
+    "published_at": "2026-08-22T00:00:00+08:00",
+    "verification_copy": "data/runtime/source-verification/300406-2026-h1-cninfo.pdf",
+    "authority_tier": "A1"
+  },
+  {
+    "content_hash": "a19485e9e1990141c43602db54efa7675a10dbb0a83a5e13a25324da45d4837e",
+    "source_name": "sse",
+    "source_record_id": "600276_20260423_22NN",
+    "canonical_url": "https://static.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-04-23/600276_20260423_22NN.pdf",
+    "published_at": "2026-04-23T00:00:00+08:00",
+    "verification_copy": "data/runtime/source-verification/600276-2026-q1-sse-big5.pdf",
+    "authority_tier": "A1"
+  },
+  {
+    "content_hash": "ff6910663a9726acb889aa061a8bab1433f58890d81ebea013b8c637a097a7aa",
+    "source_name": "sse",
+    "source_record_id": "600276_20260820_9AU6",
+    "canonical_url": "https://static.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-08-20/600276_20260820_9AU6.pdf",
+    "published_at": "2026-08-20T00:00:00+08:00",
+    "verification_copy": "data/runtime/source-verification/600276-2026-h1-sse-big5.pdf",
+    "authority_tier": "A1"
+  }
+]

@@ -4,6 +4,13 @@
 
 当前状态是“工程与演示可运行，真实 Gold 质量门待完成”。数据层已支持解析元素、实体高亮、候选关系图和证据链展示，但 Candidate 结果不能直接作为投资事实。论文依据与待验证机制见[论文调研模块](../../research/README.md)。
 
+本次 418 页 MinerU GPU 重处理、权限、事实、证据、投影和推理接口的可复现结论见
+[2026-08-24 数据层质量改造报告](quality_report_20260824.md)。报告明确区分“工程基线已就绪”
+与“正式研究目标尚未通过”，并列出人工 Gold、审批、冲突和解析复核阻断项。
+
+图表颜色、条形终点与阶段列语义的专项结果见
+[2026-08-25 视觉语义专项复核](visual_semantics_acceptance_20260825.md)。
+
 ## 按角色阅读
 
 数据管理员：
@@ -11,10 +18,13 @@
 1. [快速启动](quickstart.md)
 2. [权威数据源配置](authoritative_sources.md)
 3. [权威数据源演示](authoritative_source_demo.md)
-4. [数据层可视化](visualization.md)
-5. [数据层操作手册](operations.md)
-6. [数据清单编写指南](manifest_guide.md)
-7. [运维与恢复手册](maintenance_and_recovery.md)
+4. [文件投递箱、自动 metadata 与归档](inbox.md)
+5. [正式数据接入与生产启用](production_activation.md)
+6. [数据层可视化](visualization.md)
+7. [数据层操作手册](operations.md)
+8. [数据清单编写指南](manifest_guide.md)
+9. [运维与恢复手册](maintenance_and_recovery.md)
+10. [MinerU GPU 解析服务](mineru_gpu.md)
 
 复核与标注人员：
 
@@ -37,10 +47,14 @@
 | [quickstart.md](quickstart.md) | 从空环境到完成首批导入的最短路径 |
 | [authoritative_sources.md](authoritative_sources.md) | 中国大陆官方来源、许可边界、配置、诊断和同步命令 |
 | [authoritative_source_demo.md](authoritative_source_demo.md) | 五个真实大陆样本的一键调试和结果判读 |
+| [inbox.md](inbox.md) | 文件投递、自动 metadata、哈希归档、侧车来源核验与推理交接 |
+| [inbox_acceptance_20260823.md](inbox_acceptance_20260823.md) | 三份 2026 年真实财报的端到端结果和正式门禁判定 |
+| [production_activation.md](production_activation.md) | 真实临床、财务、行情、研报的授权、导入和上线步骤 |
 | [visualization.md](visualization.md) | 数据处理看板、演示库连接、权限和结果判读 |
 | [operations.md](operations.md) | 启动、五类导入、处理、复核、投影、查询和验收 |
 | [manifest_guide.md](manifest_guide.md) | CSV/JSON/JSONL 字段、许可、路径与五类示例 |
 | [maintenance_and_recovery.md](maintenance_and_recovery.md) | 监控、备份、恢复、任务故障和投影重建 |
+| [mineru_gpu.md](mineru_gpu.md) | 本机 GPU、CPU OOM 降级和团队私有 GPU 接入 |
 | [architecture.md](architecture.md) | 数据流、状态机、解析器和四类投影 |
 | [data_model.md](data_model.md) | 稳定 ID、主张、证据、冲突和质量分层 |
 | [governance.md](governance.md) | 来源分级、许可、权限、复核和审计原则 |
@@ -50,6 +64,7 @@
 | [acceptance.md](acceptance.md) | 自动化覆盖、真实语料验收和版本标签条件 |
 | [known_limitations.md](known_limitations.md) | 当前未通过的 Gold、可选依赖、存储和类型检查边界 |
 | [论文调研模块](../../research/README.md) | 数据层机制对应的论文证据、评价指标和待冻结决策 |
+| [正式目标符合性矩阵](../formal_goal_traceability.md) | 正式四层框架、工程证据、研究门禁和完成判定 |
 
 ## 安全提醒
 

@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0.0",
+  "description": "面向中国大陆医药投研的最小可运行指标本体；指标定义、单位和适用实体是比较与摘要的共同约束。",
+  "utility_weights": {
+    "relevance": 0.40,
+    "availability": 0.25,
+    "investment_importance": 0.35,
+    "missing_penalty": 0.45
+  },
+  "dimensions": [
+    {
+      "id": "company.revenue",
+      "name": "营业收入",
+      "parent": "company.financial",
+      "entity_types": ["Company"],
+      "predicates": ["REPORTS"],
+      "metric_names": ["营业收入", "营收"],
+      "aliases": ["营业收入", "营收", "revenue"],
+      "value_type": "number",
+      "allowed_units": ["CNY", "元", "万元", "亿元"],
+      "investment_importance": 0.90,
+      "definition": "公司在明确报告期和合并口径下确认的营业收入。"
+    },
+    {
+      "id": "company.net_profit",
+      "name": "净利润",
+      "parent": "company.financial",
+      "entity_types": ["Company"],
+      "predicates": ["REPORTS"],
+      "metric_names": ["净利润", "归母净利润"],
+      "aliases": ["净利润", "归母净利润", "net profit"],
+      "value_type": "number",
+      "allowed_units": ["CNY", "元", "万元", "亿元"],
+      "investment_importance": 0.95,
+      "definition": "公司在明确报告期和会计口径下披露的净利润。"
+    },
+    {
+      "id": "company.rd_expense",
+      "name": "研发费用",
+      "parent": "company.financial",
+      "entity_types": ["Company"],
+      "predicates": ["REPORTS"],
+      "metric_names": ["研发费用", "研发投入"],
+      "aliases": ["研发费用", "研发投入", "R&D"],
+      "value_type": "number",
+      "allowed_units": ["CNY", "元", "万元", "亿元"],
+      "investment_importance": 0.85,
+      "definition": "公司在明确报告期和口径下披露的研发费用或研发投入；两种口径不得直接混用。"
+    },
+    {
+      "id": "company.market_price",
+      "name": "收盘价",
+      "parent": "company.market",
+      "entity_types": ["Company"],
+      "predicates": ["REPORTS"],
+      "metric_names": ["收盘价"],
+      "aliases": ["收盘价", "股价", "close price"],
+      "value_type": "number",
+      "allowed_units": ["CNY", "元"],
+      "investment_importance": 0.75,
+      "definition": "证券在指定交易日、交易所和复权口径下的收盘价格。"
+    },
+    {
+      "id": "company.market_cap",
+      "name": "总市值",
+      "parent": "company.market",
+      "entity_types": ["Company"],
+      "predicates": ["REPORTS"],
+      "metric_names": ["总市值"],
+      "aliases": ["总市值", "市值", "market cap"],
+      "value_type": "number",
+      "allowed_units": ["CNY", "元", "万元", "亿元"],
+      "investment_importance": 0.80,
+      "definition": "公司在指定交易日、证券范围和币种下的总市值。"
+    },
+    {
+      "id": "drug.clinical_stage",
+      "name": "临床阶段",
+      "parent": "drug.pipeline",
+      "entity_types": ["Drug", "PipelineProgram"],
+      "predicates": ["HAS_STAGE"],
+      "metric_names": [],
+      "aliases": ["临床阶段", "研发阶段", "phase", "stage"],
+      "value_type": "stage",
+      "allowed_units": [],
+      "investment_importance": 0.95,
+      "definition": "药物或项目在指定适应症、区域和时点下的最高可核验证据阶段。"
+    },
+    {
+      "id": "drug.indication",
+      "name": "适应症",
+      "parent": "drug.pipeline",
+      "entity_types": ["Drug", "PipelineProgram"],
+      "predicates": ["TREATS"],
+      "metric_names": [],
+      "aliases": ["适应症", "疾病", "indication"],
+      "value_type": "entity",
+      "allowed_units": [],
+      "investment_importance": 0.85,
+      "definition": "药物或项目针对的疾病或适应症，必须保留证据来源和研究语境。"
+    },
+    {
+      "id": "drug.target",
+      "name": "靶点",
+      "parent": "drug.mechanism",
+      "entity_types": ["Drug", "PipelineProgram"],
+      "predicates": ["TARGETS"],
+      "metric_names": [],
+      "aliases": ["靶点", "作用靶点", "target"],
+      "value_type": "entity",
+      "allowed_units": [],
+      "investment_importance": 0.80,
+      "definition": "药物或项目的直接或声明作用靶点。"
+    },
+    {
+      "id": "company.pipeline",
+      "name": "在研管线",
+      "parent": "company.pipeline",
+      "entity_types": ["Company"],
+      "predicates": ["DEVELOPS"],
+      "metric_names": [],
+      "aliases": ["在研管线", "管线", "pipeline"],
+      "value_type": "entity",
+      "allowed_units": [],
+      "investment_importance": 0.90,
+      "definition": "公司公开披露正在开发或拥有权益的药物或项目。"
+    }
+  ]
+}

@@ -22,7 +22,7 @@
 | `license_status` | 含义 | 是否抓取正文 |
 |---|---|---|
 | `public` | 有明确依据允许公开再分发 | 是 |
-| `public_access` | 公众可访问，仅限团队内部解析和派生使用 | 是 |
+| `public_access` | 公众可访问；是否对外展示仍由 `access_class` 和再分发依据决定 | 是 |
 | `authorized_restricted` | 已授权，但仅限受控内部使用 | 是 |
 | `metadata_only` | 只允许记录元数据 | 否 |
 | `prohibited` | 明确禁止处理 | 否 |
@@ -30,9 +30,8 @@
 
 访问等级：
 
-- `public`：可参与公开查询和公开快照；
-- `team_internal`：团队内部查询；
-- `restricted`：仅指定人员或流程使用。
+- `public`：无需 API Key，可参与公开查询和公开快照；
+- `restricted`：需要 `INTERNAL_API_KEY`，仅指定人员或流程使用。
 
 非公开许可不能填写 `public` 访问等级。系统会拒绝该组合。
 
@@ -58,6 +57,7 @@
 | `financial_reports` | 财务报告 |
 | `news` | 新闻 |
 | `earnings_calls` | 电话会议 |
+| `market_data` | 已授权中国大陆证券行情 |
 
 中国大陆临床注册平台没有被官方承诺稳定的批量 API。先从官网查询或导出，再使用 `china_drug_trials` 清单导入。
 
@@ -67,7 +67,7 @@
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,institution,analyst,stock_code,rating
-REPORT-2026-001,某公司创新药深度报告,2026-08-01,,../../data/restricted/report-001.pdf,authorized_restricted,team_internal,示例证券,张三,600000.SH,买入
+REPORT-2026-001,某公司创新药深度报告,2026-08-01,,../../data/restricted/report-001.pdf,authorized_restricted,restricted,示例证券,张三,600000.SH,买入
 ~~~
 
 必须保留机构、分析师、证券代码、评级和授权依据。原始 PDF 只能放在受控数据目录，不得提交 Git。
@@ -76,7 +76,7 @@ REPORT-2026-001,某公司创新药深度报告,2026-08-01,,../../data/restricted
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,registry_id
-CTR20260083,CTR20260083临床试验登记导出,2026-08-09,https://www.chinadrugtrials.org.cn/clinicaltrials.searchlist.dhtml?keywords=CTR20260083,../../data/internal/CTR20260083.html,public_access,team_internal,CTR20260083
+CTR20260083,CTR20260083临床试验登记导出,2026-08-09,https://www.chinadrugtrials.org.cn/clinicaltrials.searchlist.dhtml?keywords=CTR20260083,../../data/restricted/CTR20260083.html,public_access,restricted,CTR20260083
 ~~~
 
 临床和 CDE 文件必须保存官方登记号或受理号、查询日期和详情页。不要把搜索结果页的当前状态当作永久属性。
@@ -85,7 +85,7 @@ CTR20260083,CTR20260083临床试验登记导出,2026-08-09,https://www.chinadrug
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,exchange,stock_code,report_period
-CNINFO-1225032585,恒瑞医药2025年年度报告,2026-03-26,https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF,../../data/internal/1225032585.PDF,public_access,team_internal,SSE,600276.SH,2025
+CNINFO-1225032585,恒瑞医药2025年年度报告,2026-03-26,https://static.cninfo.com.cn/finalpage/2026-03-26/1225032585.PDF,../../data/restricted/1225032585.PDF,public_access,restricted,SSE,600276.SH,2025
 ~~~
 
 `report_period` 与 `published_at` 必须分开。自定义列会进入原始元数据，可以补充币种、审计状态和合并范围。
@@ -94,7 +94,7 @@ CNINFO-1225032585,恒瑞医药2025年年度报告,2026-03-26,https://static.cnin
 
 ~~~csv
 source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,publisher
-NHSA-DRUG-CATALOG-2025,2025年国家医保药品目录通知,2025-12-07,https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html,../../data/internal/nhsa-2025.html,public_access,team_internal,国家医疗保障局
+NHSA-DRUG-CATALOG-2025,2025年国家医保药品目录通知,2025-12-07,https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html,../../data/restricted/nhsa-2025.html,public_access,restricted,国家医疗保障局
 ~~~
 
 如正文被修订或撤回，不要覆盖旧文件；保留新版本并记录修订关系。
@@ -108,6 +108,15 @@ CALL-2026-001,某公司2026年中期业绩说明会,2026-08-05,https://official.
 
 录音必须有明确授权。建议同时提供官方参与者名单、文字稿和演示材料，并用自定义字段记录关联编号。
 
+### 5.6 证券行情
+
+~~~csv
+source_record_id,title,published_at,canonical_url,local_path,license_status,access_class,document_type,provider,authorization_reference,exchange,stock_code,adjustment
+SSE-600276-20260821,600276 2026-08-21日行情,2026-08-21T15:00:00+08:00,https://www.sse.com.cn/,../../data/restricted/600276-20260821.xlsx,authorized_restricted,restricted,market_data,授权提供方,内部授权编号,SSE,600276.SH,unadjusted
+~~~
+
+行情文件支持 JSON、CSV、XLSX。字段至少包含 `company`、`stock_code`、`trade_date` 和一个行情指标；支持 `open/high/low/close/volume/turnover/market_cap` 或对应中文列名。接口技术规范不等于数据使用许可；必须保存提供方、产品、授权编号、导出人、导出时间、授权截止日和复权口径。原始行情不得进入公开快照。
+
 ## 6. JSON 与 JSONL
 
 JSON 可直接使用记录数组，也可使用 `{"records": [...]}`。JSONL 每行一条 JSON 对象。
@@ -120,7 +129,7 @@ JSON 可直接使用记录数组，也可使用 `{"records": [...]}`。JSONL 每
   "canonical_url": "https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html",
   "content_url": "https://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html",
   "license_status": "public_access",
-  "access_class": "team_internal",
+  "access_class": "restricted",
   "publisher": "国家医疗保障局"
 }
 ~~~

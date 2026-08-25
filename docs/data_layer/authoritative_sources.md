@@ -6,7 +6,7 @@
 [`config/authoritative_sources.json`](../../config/authoritative_sources.json)，每条记录都固定包含
 `jurisdiction=CN-MAINLAND`。CLI 和 REST API 不再提供 ClinicalTrials.gov、FDA、SEC 或港交所同步入口。
 
-当前登记 31 个来源，覆盖券商研报、临床、药品监管、医保支付、财务报表、新闻、电话会议、行业统计、进出口、专利和药物安全。
+当前登记 34 个来源，覆盖券商研报、临床、药品监管、医保支付、财务报表、证券行情、新闻、电话会议、行业统计、进出口、专利和药物安全。
 
 来源分级：
 
@@ -25,7 +25,7 @@
 | `official_manifest` | 逐项登记官方 URL 或本地文件 | 使用清单导入 |
 | `authorized_manifest` | 内容受版权或订阅约束 | 核验授权后使用受限清单 |
 
-截至 2026-08-09，未发现能够同时满足“官方文档、稳定、跨主体批量查询”三个条件的中国大陆临床、A 股公告、研报和电话会议统一开放 API。部分官网前端存在查询端点，但官方没有承诺其稳定性；项目不会把网页内部端点写成“公开 API”。
+截至 2026-08-22，未发现能够同时满足“官方文档、稳定、跨主体批量查询”三个条件的中国大陆临床、A 股公告、研报和电话会议统一开放 API。部分官网前端存在查询端点，但官方没有承诺其稳定性；项目不会把网页内部端点写成“公开 API”。
 
 ## 3. 核心来源
 
@@ -81,7 +81,17 @@
 
 “电话会议”数据优先采用交易所披露的活动记录表和公司官方文字稿。录音只有在来源、参与者和使用授权均明确时才允许导入。
 
-### 3.5 券商研报与官方新闻
+### 3.5 证券行情
+
+| 来源 | 官方依据 | 当前接入 |
+|---|---|---|
+| [上交所行情服务](https://www.sse.com.cn/transparency/services/index.shtml) | 产品、授权许可、收费标准和办理入口 | 授权文件清单 |
+| [深交所行情接口规范](https://www.szse.cn/marketServices/technicalservice/interface/index.html) | 行情数据接口与技术规范；规范本身不等于使用许可 | 授权文件清单 |
+| [北交所境内行情授权指南](https://www.bse.cn/application/guide.html) | 明确的许可使用申请和使用边界 | 授权文件清单 |
+
+交易所网页展示只能用于人工核验。批量行情、历史行情和内部模型处理必须由交易所信息公司或合同允许的合规数据终端提供。原始行情默认 `authorized_restricted + restricted`，并使用 `market_data` 清单导入。
+
+### 3.6 券商研报与官方新闻
 
 券商研报只允许来自中国大陆持牌证券公司研究所或合法授权提供方。中国证券业协会的[发布证券研究报告执业规范](https://www.sac.net.cn/sjb/flfg_949/zlgz/202005/t20200525_14376.html)要求研究机构管理信息来源和发布流程；该规范不等于允许第三方复制全文。
 
@@ -93,10 +103,10 @@
 
 - `public_access`：公众能访问，允许项目内部解析，但不能据此认定可再分发全文；
 - `public`：有明确依据允许公开分发，才可进入公开快照；
-- `authorized_restricted`：已有授权，但仅限团队内部；
+- `authorized_restricted`：已有授权，但仅限受限范围；
 - `metadata_only`、`prohibited`、`unknown`：不下载正文。
 
-大陆官网直连样本默认使用 `public_access + team_internal`。公开数据集只发布来源元数据、链接、团队原创标注和符合授权范围的派生数据。
+大陆官网直连样本默认使用 `public_access + restricted`；只有确认可对外展示的内容才放入 `data/public` 并标记 `public`。
 
 ## 5. 检查来源
 
@@ -137,6 +147,7 @@
 .venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type china_drug_trials
 .venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type cde
 .venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type financial_reports
+.venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type market_data
 .venv\Scripts\datactl.exe ingest manifest PATH_TO_MANIFEST --source-type news
 ~~~
 
@@ -147,6 +158,7 @@
 | 法定公告、监管和安全事件 | 每日 | 公告编号/官方 URL/内容哈希 |
 | 临床登记 | 每周；关键项目每日 | CTR/ChiCTR 编号 + 版本日期 |
 | 财务定期报告 | 披露季每日 | 证券代码 + 报告期 + 公告编号 |
+| 证券行情 | 每个交易日或研究批次 | 交易所 + 证券代码 + 交易日 + 复权口径 |
 | 投资者关系记录 | 每周 | 证券代码 + 活动编号 + 日期 |
 | 医保、集采和目录 | 事件触发 | 文件编号 + 发布日期 |
 | 卫生、医保、统计年鉴 | 月度或年度 | 指标代码 + 统计期 + 地区 |

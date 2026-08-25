@@ -146,14 +146,42 @@ class DataCleanAgent:
         return list(unique.values())
 
     def _detect_conflicts(self, assertions: list[AssertionCandidate]) -> list[ConflictRecord]:
-        groups: dict[tuple[str, str], list[AssertionCandidate]] = defaultdict(list)
+        groups: dict[tuple[str, ...], list[AssertionCandidate]] = defaultdict(list)
         for assertion in assertions:
             if assertion.predicate not in {RelationType.HAS_STAGE, RelationType.REPORTS}:
                 continue
-            groups[(assertion.subject_mention_id, assertion.predicate.value)].append(assertion)
+            qualifiers = assertion.qualifiers
+            period_identity = stable_hash(
+                {
+                    "valid_from": assertion.valid_from,
+                    "valid_to": assertion.valid_to,
+                    "as_of_date": assertion.as_of_date,
+                    "period_start": qualifiers.get("period_start"),
+                    "period_end": qualifiers.get("period_end"),
+                    "period_semantics": qualifiers.get("period_semantics"),
+                    "period_label": qualifiers.get("period_label"),
+                }
+            )
+            scope_identity = stable_hash(
+                {
+                    "consolidation_scope": qualifiers.get("consolidation_scope"),
+                    "business_scope": qualifiers.get("business_scope"),
+                    "region": qualifiers.get("region"),
+                    "value_kind": qualifiers.get("value_kind"),
+                }
+            )
+            groups[
+                (
+                    assertion.subject_mention_id,
+                    assertion.predicate.value,
+                    str(qualifiers.get("metric_name") or ""),
+                    period_identity,
+                    scope_identity,
+                )
+            ].append(assertion)
 
         conflicts: list[ConflictRecord] = []
-        for (_, _), values in groups.items():
+        for values in groups.values():
             if len(values) < 2:
                 continue
             normalized_objects = {
@@ -167,20 +195,23 @@ class DataCleanAgent:
             if len(normalized_objects) <= 1:
                 continue
             units = {item.object_unit for item in values if item.object_unit}
-            as_of_dates = {item.as_of_date for item in values if item.as_of_date}
-            scopes = {stable_hash(item.qualifiers) for item in values}
+            currencies = {
+                str(item.qualifiers.get("currency"))
+                for item in values
+                if item.qualifiers.get("currency")
+            }
             if len(units) > 1:
                 conflict_type = ConflictType.UNIT_DIFFERENCE
                 rationale = "Assertions use different units and cannot be compared directly"
-            elif len(as_of_dates) > 1:
-                conflict_type = ConflictType.TEMPORAL_DIFFERENCE
-                rationale = "Assertions refer to different as-of dates"
-            elif len(scopes) > 1:
-                conflict_type = ConflictType.SCOPE_DIFFERENCE
-                rationale = "Assertions have different qualifiers or business scopes"
+            elif len(currencies) > 1:
+                conflict_type = ConflictType.CURRENCY_DIFFERENCE
+                rationale = "Assertions use different currencies and cannot be compared directly"
             else:
                 conflict_type = ConflictType.TRUE_CONTRADICTION
-                rationale = "Assertions share subject, predicate, time and scope but disagree"
+                rationale = (
+                    "Assertions share subject, metric, period and scope but report "
+                    "different values"
+                )
             conflicts.append(
                 ConflictRecord(
                     conflict_type=conflict_type,

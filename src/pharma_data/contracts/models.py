@@ -85,6 +85,40 @@ class BoundingBox(BaseModel):
         return value
 
 
+class CharacterSpan(BaseModel):
+    char_start: int = Field(ge=0)
+    char_end: int = Field(ge=0)
+    text: str
+    bbox: BoundingBox | None = None
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+    @field_validator("char_end")
+    @classmethod
+    def end_after_start(cls, value: int, info: Any) -> int:
+        start = info.data.get("char_start")
+        if start is not None and value < start:
+            raise ValueError("char_end must be greater than or equal to char_start")
+        return value
+
+
+class TableCell(BaseModel):
+    row_index: int = Field(ge=0)
+    column_index: int = Field(ge=0)
+    row_span: int = Field(default=1, ge=1)
+    column_span: int = Field(default=1, ge=1)
+    text: str = ""
+    bbox: BoundingBox | None = None
+    header_path: list[str] = Field(default_factory=list)
+    normalized_value: str | None = None
+    numeric_value: str | None = None
+    unit: str | None = None
+    currency: str | None = None
+    scale: str | None = None
+    period_start: datetime | None = None
+    period_end: datetime | None = None
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+
 class DocumentElement(BaseModel):
     element_id: str = Field(default_factory=new_id)
     document_version_id: str
@@ -94,6 +128,8 @@ class DocumentElement(BaseModel):
     reading_order: int = Field(ge=0)
     text: str = ""
     structured_payload: dict[str, Any] = Field(default_factory=dict)
+    character_spans: list[CharacterSpan] = Field(default_factory=list)
+    table_cells: list[TableCell] = Field(default_factory=list)
     footnote_links: list[str] = Field(default_factory=list)
     parser_name: str
     parser_version: str
@@ -167,6 +203,9 @@ class AssertionCandidate(BaseModel):
     assertion_mode: AssertionMode = AssertionMode.STATED
     evidence_element_id: str | None = None
     evidence_utterance_id: str | None = None
+    evidence_char_start: int | None = Field(default=None, ge=0)
+    evidence_char_end: int | None = Field(default=None, ge=0)
+    evidence_table_cell: tuple[int, int] | None = None
     evidence_text: str
     extraction_method: str
     confidence: float = Field(ge=0, le=1)
